@@ -1,0 +1,34 @@
+{% set name = "permucn" %}
+{% set version = "0.1.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  path: ..
+
+build:
+  noarch: python
+  script: "{{ PYTHON }} -m pip install . --no-deps -vv"
+  entry_points:
+    - permucn = permucn.cli:main
+
+requirements:
+  host:
+    - python >=3.10
+    - pip
+    - setuptools >=68
+    - wheel
+  run:
+    - python >=3.10
+
+test:
+  imports:
+    - permucn
+  commands:
+    - permucn --help
+
+about:
+  license: MIT
+  summary: Permutation-based test for copy-number and binary trait association.
