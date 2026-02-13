@@ -55,6 +55,15 @@ For a larger sample dataset:
 permucn get-test-data --dataset polar_fish --out-dir permucn_test_data
 ```
 
+```bash
+permucn \
+  --cafe-dir permucn_test_data/polar_fish/cafe_output \
+  --trait-tsv permucn_test_data/polar_fish/species_trait.tsv \
+  --jobs 4 \
+  --perm-cache results/perm_cache.json.gz \
+  --out-prefix results/polar_fish
+```
+
 ## Required Inputs
 
 `--cafe-dir` must include:
