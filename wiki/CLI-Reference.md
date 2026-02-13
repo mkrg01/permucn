@@ -23,8 +23,8 @@ permucn [OPTIONS]
 | `--direction {gain,loss}` | `gain` | Directional sign convention for statistics. |
 | `--include-trait-loss` / `--no-include-trait-loss` | `include` | Whether to include inferred `1->0` foreground transitions. |
 | `--asr-method {ml}` | `ml` | Trait ASR method. Current implementation supports ML only. |
-| `--asr-posterior-hi` | `0.9` | Posterior threshold for hard state `1`. |
-| `--asr-posterior-lo` | `0.1` | Posterior threshold for hard state `0`. |
+| `--asr-posterior-hi` | `0.6` | Posterior threshold for hard state `1`. |
+| `--asr-posterior-lo` | `0.4` | Posterior threshold for hard state `0`. |
 | `--cafe-significant-only` | `False` | Binary mode only. Restrict event counting to branches significant in CAFE probabilities. |
 | `--cafe-alpha` | `0.05` | Significance threshold used with `--cafe-significant-only`. |
 

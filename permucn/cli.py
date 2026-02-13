@@ -74,8 +74,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.set_defaults(include_trait_loss=True)
 
     parser.add_argument("--asr-method", choices=["ml"], default="ml")
-    parser.add_argument("--asr-posterior-hi", type=float, default=0.9)
-    parser.add_argument("--asr-posterior-lo", type=float, default=0.1)
+    parser.add_argument("--asr-posterior-hi", type=float, default=0.6)
+    parser.add_argument("--asr-posterior-lo", type=float, default=0.4)
 
     parser.add_argument("--cafe-significant-only", action="store_true")
     parser.add_argument("--cafe-alpha", type=float, default=0.05)

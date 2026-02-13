@@ -25,8 +25,8 @@ class ASRResult:
 def run_trait_asr_ml(
     tree: CanonicalTree,
     species_to_state: Dict[str, int],
-    posterior_hi: float = 0.9,
-    posterior_lo: float = 0.1,
+    posterior_hi: float = 0.6,
+    posterior_lo: float = 0.4,
 ) -> ASRResult:
     """Infer ancestral states and foreground transition branches under an ML Mk2 model."""
     _validate_species_match(tree, species_to_state)
