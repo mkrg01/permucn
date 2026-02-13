@@ -36,8 +36,8 @@ permucn \
 
 Optional plot outputs (when `--make-plots` is enabled and matplotlib is installed):
 
-- `<out-prefix>.pvalue_hist.png`
-- `<out-prefix>.qq.png`
+- `<out-prefix>.pvalue_hist.pdf`
+- `<out-prefix>.qq.pdf`
 
 `--jobs` parallelizes both permutation generation and per-family scoring.
 

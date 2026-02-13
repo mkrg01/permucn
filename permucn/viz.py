@@ -24,8 +24,8 @@ def generate_visual_outputs(
         "top_hits_tsv": None,
         "pvalue_hist_tsv": None,
         "qq_tsv": None,
-        "pvalue_hist_png": None,
-        "qq_png": None,
+        "pvalue_hist_pdf": None,
+        "qq_pdf": None,
         "plot_warnings": [],
     }
 
@@ -47,15 +47,15 @@ def generate_visual_outputs(
     outputs["qq_tsv"] = str(qq_tsv)
 
     if make_plots:
-        warning = _maybe_plot_hist(pvals, Path(str(out_prefix) + ".pvalue_hist.png"), bins=hist_bins)
+        warning = _maybe_plot_hist(pvals, Path(str(out_prefix) + ".pvalue_hist.pdf"), bins=hist_bins)
         if warning is None:
-            outputs["pvalue_hist_png"] = str(Path(str(out_prefix) + ".pvalue_hist.png"))
+            outputs["pvalue_hist_pdf"] = str(Path(str(out_prefix) + ".pvalue_hist.pdf"))
         else:
             outputs["plot_warnings"].append(warning)
 
-        warning = _maybe_plot_qq(pvals, Path(str(out_prefix) + ".qq.png"))
+        warning = _maybe_plot_qq(pvals, Path(str(out_prefix) + ".qq.pdf"))
         if warning is None:
-            outputs["qq_png"] = str(Path(str(out_prefix) + ".qq.png"))
+            outputs["qq_pdf"] = str(Path(str(out_prefix) + ".qq.pdf"))
         else:
             outputs["plot_warnings"].append(warning)
 
@@ -140,29 +140,29 @@ def _write_rows(path: Path, fieldnames: Sequence[str], rows: Sequence[Dict[str, 
             w.writerow(row)
 
 
-def _maybe_plot_hist(values: Sequence[float], out_png: Path, bins: int) -> str | None:
+def _maybe_plot_hist(values: Sequence[float], out_pdf: Path, bins: int) -> str | None:
     try:
         import matplotlib.pyplot as plt  # type: ignore
     except Exception:
-        return "matplotlib is not available; skipped histogram PNG"
+        return "matplotlib is not available; skipped histogram PDF"
 
-    out_png.parent.mkdir(parents=True, exist_ok=True)
+    out_pdf.parent.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.hist(values, bins=max(1, int(bins)), range=(0, 1), color="#3A78C2", edgecolor="black")
     ax.set_xlabel("Empirical p-value")
     ax.set_ylabel("Count")
     ax.set_title("p-value histogram")
     fig.tight_layout()
-    fig.savefig(out_png, dpi=150)
+    fig.savefig(out_pdf)
     plt.close(fig)
     return None
 
 
-def _maybe_plot_qq(values: Sequence[float], out_png: Path) -> str | None:
+def _maybe_plot_qq(values: Sequence[float], out_pdf: Path) -> str | None:
     try:
         import matplotlib.pyplot as plt  # type: ignore
     except Exception:
-        return "matplotlib is not available; skipped QQ PNG"
+        return "matplotlib is not available; skipped QQ PDF"
 
     obs = sorted(min(max(p, 1e-300), 1.0) for p in values)
     n = len(obs)
@@ -171,7 +171,7 @@ def _maybe_plot_qq(values: Sequence[float], out_png: Path) -> str | None:
     x = [-math.log10(p) for p in exp]
     y = [-math.log10(p) for p in obs]
 
-    out_png.parent.mkdir(parents=True, exist_ok=True)
+    out_pdf.parent.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(5, 5))
     ax.scatter(x, y, s=10, color="#2F7D4A", alpha=0.8)
     lim = max(max(x), max(y)) if x and y else 1.0
@@ -180,7 +180,7 @@ def _maybe_plot_qq(values: Sequence[float], out_png: Path) -> str | None:
     ax.set_ylabel("Observed -log10(p)")
     ax.set_title("QQ plot")
     fig.tight_layout()
-    fig.savefig(out_png, dpi=150)
+    fig.savefig(out_pdf)
     plt.close(fig)
     return None
 

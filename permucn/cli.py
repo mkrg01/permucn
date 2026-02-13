@@ -106,7 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--make-plots",
         action="store_true",
-        help="Generate QQ/histogram PNG outputs (requires matplotlib)",
+        help="Generate QQ/histogram PDF outputs (requires matplotlib)",
     )
     parser.add_argument(
         "--qvalue-threshold",
