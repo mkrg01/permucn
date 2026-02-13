@@ -15,7 +15,25 @@ Requirements:
 
 - Python `>=3.12`
 
-Install from source:
+Install directly from GitHub (no `git clone` required):
+
+```bash
+pip install "permucn @ git+https://github.com/mkrg01/permucn.git"
+```
+
+After publishing to PyPI:
+
+```bash
+pip install permucn
+```
+
+Install with plot support:
+
+```bash
+pip install "permucn[plots] @ git+https://github.com/mkrg01/permucn.git"
+```
+
+For local development:
 
 ```bash
 pip install -e .
