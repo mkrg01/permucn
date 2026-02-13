@@ -8,6 +8,10 @@
 pip install -e .
 ```
 
+## Python support
+
+- Python 3.12, 3.13, 3.14
+
 ## Example
 
 ```bash
