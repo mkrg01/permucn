@@ -459,18 +459,38 @@ def run(args: argparse.Namespace) -> int:
         posterior_hi=args.asr_posterior_hi,
         posterior_lo=args.asr_posterior_lo,
     )
-    internal_nodes = [i for i, species in enumerate(tree.tip_species_by_node) if species is None]
-    ambiguous_nodes = [
-        i
-        for i in internal_nodes
-        if args.asr_posterior_lo < asr.posterior_by_node[i][1] < args.asr_posterior_hi
-    ]
-    if ambiguous_nodes:
-        preview = ", ".join(str(i) for i in ambiguous_nodes[:8])
+    map_state_by_node = [1 if p1 >= 0.5 else 0 for _, p1 in asr.posterior_by_node]
+    potential_transition_branch_keys: List[str] = []
+    potential_01 = 0
+    potential_10 = 0
+    for bidx, child in enumerate(tree.node_by_branch_index):
+        parent = tree.parent_by_node[child]
+        if parent is None:
+            continue
+
+        hard_parent = asr.hard_state_by_node[parent]
+        hard_child = asr.hard_state_by_node[child]
+        if hard_parent is not None and hard_child is not None:
+            continue
+
+        parent_state = map_state_by_node[parent]
+        child_state = map_state_by_node[child]
+        if parent_state == child_state:
+            continue
+
+        potential_transition_branch_keys.append(tree.branch_key_by_index[bidx])
+        if parent_state == 0:
+            potential_01 += 1
+        else:
+            potential_10 += 1
+
+    if potential_transition_branch_keys:
+        preview = ", ".join(potential_transition_branch_keys[:8])
         _log_warning(
-            "ASR posterior is ambiguous (--asr-posterior-lo < posterior < --asr-posterior-hi) for "
-            f"{len(ambiguous_nodes)}/{len(internal_nodes)} internal nodes "
-            f"(node indices: {preview})"
+            "ASR posterior thresholding skipped potential phenotype-transition branches: "
+            f"{len(potential_transition_branch_keys)} branch(es) would be transitions under "
+            f"posterior>=0.5 binarization (0->1={potential_01}, 1->0={potential_10}; "
+            f"branch keys: {preview})"
         )
 
     fg_01_mask = asr.fg_01_mask

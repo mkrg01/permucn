@@ -260,7 +260,7 @@ class TestCliIntegration(unittest.TestCase):
         meta = json.loads(Path(str(out_prefix) + ".run_metadata.json").read_text(encoding="utf-8"))
         self.assertEqual(meta["results"]["n_tested"], 0)
 
-    def test_warning_when_asr_posterior_is_ambiguous(self) -> None:
+    def test_warning_when_potential_transition_branches_are_skipped_by_thresholding(self) -> None:
         td, cafe_dir, trait_tsv = self._build_toy_inputs(
             trait_rows=[["A", "0"], ["B", "1"], ["C", "0"], ["D", "1"]]
         )
@@ -293,7 +293,7 @@ class TestCliIntegration(unittest.TestCase):
         self.assertEqual(rc, 0)
         logs = stderr.getvalue()
         self.assertIn("[permucn][warning]", logs)
-        self.assertIn("ASR posterior is ambiguous", logs)
+        self.assertIn("ASR posterior thresholding skipped potential phenotype-transition branches", logs)
 
     def test_reproducible_outputs_with_seed(self) -> None:
         td, cafe_dir, trait_tsv = self._build_toy_inputs()
