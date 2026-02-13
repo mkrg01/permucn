@@ -7,15 +7,28 @@ from permucn.cli import main
 
 
 class TestUserToyData(unittest.TestCase):
-    def test_test_data_binary_smoke(self) -> None:
-        root = Path(__file__).resolve().parents[1]
-        cafe_dir = root / "test_data" / "toy_example" / "cafe_output"
-        trait_tsv = root / "test_data" / "toy_example" / "species_trait.tsv"
+    def test_get_test_data_binary_smoke(self) -> None:
+        td = Path(tempfile.mkdtemp(prefix="permucn_user_data_"))
+        test_data_dir = td / "fetched_test_data"
 
+        rc_fetch = main(
+            [
+                "get-test-data",
+                "--dataset",
+                "toy_example",
+                "--source",
+                "local",
+                "--out-dir",
+                str(test_data_dir),
+            ]
+        )
+        self.assertEqual(rc_fetch, 0)
+
+        cafe_dir = test_data_dir / "toy_example" / "cafe_output"
+        trait_tsv = test_data_dir / "toy_example" / "species_trait.tsv"
         self.assertTrue(cafe_dir.exists())
         self.assertTrue(trait_tsv.exists())
 
-        td = Path(tempfile.mkdtemp(prefix="permucn_user_data_"))
         out_prefix = td / "out" / "toy_binary"
 
         rc = main(
@@ -52,6 +65,50 @@ class TestUserToyData(unittest.TestCase):
         self.assertEqual(meta["parameters"]["mode"], "binary")
         self.assertEqual(meta["trait_columns"]["trait_column_source"], "auto")
         self.assertGreater(meta["results"]["n_tested"], 0)
+
+    def test_get_test_data_overwrite_requires_force(self) -> None:
+        td = Path(tempfile.mkdtemp(prefix="permucn_user_data_overwrite_"))
+        test_data_dir = td / "fetched_test_data"
+
+        first = main(
+            [
+                "get-test-data",
+                "--dataset",
+                "toy_example",
+                "--source",
+                "local",
+                "--out-dir",
+                str(test_data_dir),
+            ]
+        )
+        self.assertEqual(first, 0)
+
+        second = main(
+            [
+                "get-test-data",
+                "--dataset",
+                "toy_example",
+                "--source",
+                "local",
+                "--out-dir",
+                str(test_data_dir),
+            ]
+        )
+        self.assertEqual(second, 1)
+
+        third = main(
+            [
+                "get-test-data",
+                "--dataset",
+                "toy_example",
+                "--source",
+                "local",
+                "--out-dir",
+                str(test_data_dir),
+                "--force",
+            ]
+        )
+        self.assertEqual(third, 0)
 
 
 if __name__ == "__main__":

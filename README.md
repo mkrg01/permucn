@@ -47,12 +47,18 @@ permucn --help
 
 ## Quick Start
 
-Run with bundled toy data (fast check):
+Fetch toy test data (works for `pip install` and source checkout):
+
+```bash
+permucn get-test-data --dataset toy_example --out-dir permucn_test_data
+```
+
+Run with toy data (fast check):
 
 ```bash
 permucn \
-  --cafe-dir test_data/toy_example/cafe_output \
-  --trait-tsv test_data/toy_example/species_trait.tsv \
+  --cafe-dir permucn_test_data/toy_example/cafe_output \
+  --trait-tsv permucn_test_data/toy_example/species_trait.tsv \
   --no-include-trait-loss \
   --n-perm-initial 20 \
   --n-perm-refine 50 \
@@ -63,9 +69,13 @@ permucn \
 Run with the larger polar fish dataset:
 
 ```bash
+permucn get-test-data --dataset polar_fish --out-dir permucn_test_data
+```
+
+```bash
 permucn \
-  --cafe-dir test_data/polar_fish/cafe_output \
-  --trait-tsv test_data/polar_fish/species_trait.tsv \
+  --cafe-dir permucn_test_data/polar_fish/cafe_output \
+  --trait-tsv permucn_test_data/polar_fish/species_trait.tsv \
   --jobs 4 \
   --perm-cache results/perm_cache.json.gz \
   --out-prefix results/polar_fish

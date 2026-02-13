@@ -39,6 +39,7 @@ from .stats_binary import (
     sign_masks,
 )
 from .stats_rate import build_rates, observed_rate_stat, permutation_rate_stats, rate_summary
+from .testdata import DEFAULT_TEST_DATA_REF, fetch_test_data
 from .trait_ml import run_trait_asr_ml
 from .tree import load_canonical_tree
 from .viz import generate_visual_outputs
@@ -48,6 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="permucn",
         description="Permutation-based copy number / trait association testing",
+        epilog="Sample data helper: permucn get-test-data --help",
     )
 
     parser.add_argument(
@@ -130,6 +132,41 @@ def build_parser() -> argparse.ArgumentParser:
         help="Number of bins for p-value histogram output",
     )
 
+    return parser
+
+
+def build_test_data_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="permucn get-test-data",
+        description="Fetch sample test datasets for quick permucn runs",
+    )
+    parser.add_argument(
+        "--dataset",
+        choices=["toy_example", "polar_fish", "all"],
+        default="toy_example",
+        help="Dataset to fetch",
+    )
+    parser.add_argument(
+        "--out-dir",
+        default="test_data",
+        help="Directory where datasets will be written",
+    )
+    parser.add_argument(
+        "--source",
+        choices=["auto", "local", "github"],
+        default="auto",
+        help="Use local repository data or download from GitHub",
+    )
+    parser.add_argument(
+        "--ref",
+        default=DEFAULT_TEST_DATA_REF,
+        help="Git ref used when downloading from GitHub (branch/tag/commit)",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing dataset directories in --out-dir",
+    )
     return parser
 
 
@@ -807,9 +844,37 @@ def run(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_get_test_data(args: argparse.Namespace) -> int:
+    result = fetch_test_data(
+        dataset=args.dataset,
+        out_dir=args.out_dir,
+        source=args.source,
+        ref=args.ref,
+        force=args.force,
+    )
+    datasets = ", ".join(result.datasets)
+    print(f"Wrote test data to: {result.out_dir}")
+    print(f"Datasets: {datasets}")
+    print(f"Source: {result.source}")
+    if result.source == "github":
+        print(f"Git ref: {args.ref}")
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
+    argv_list = list(argv) if argv is not None else sys.argv[1:]
+
+    if argv_list and argv_list[0] in {"get-test-data", "test-data"}:
+        parser = build_test_data_parser()
+        args = parser.parse_args(argv_list[1:])
+        try:
+            return run_get_test_data(args)
+        except Exception as exc:  # pragma: no cover - top-level UX
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+
     parser = build_parser()
-    args = parser.parse_args(argv)
+    args = parser.parse_args(argv_list)
     try:
         return run(args)
     except Exception as exc:  # pragma: no cover - top-level UX

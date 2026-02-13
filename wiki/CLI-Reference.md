@@ -6,6 +6,20 @@
 permucn [OPTIONS]
 ```
 
+```bash
+permucn get-test-data [OPTIONS]
+```
+
+## Test Data Command
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--dataset {toy_example,polar_fish,all}` | `toy_example` | Which sample dataset to fetch. |
+| `--out-dir` | `test_data` | Destination directory for fetched data. |
+| `--source {auto,local,github}` | `auto` | `local`: copy from repository root, `github`: download from GitHub, `auto`: prefer local then github. |
+| `--ref` | `main` | Git ref used when source is `github`. |
+| `--force` | `False` | Overwrite existing dataset directory in `--out-dir`. |
+
 ## Core Inputs
 
 | Option | Default | Description |
