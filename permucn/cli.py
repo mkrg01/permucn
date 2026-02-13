@@ -193,6 +193,10 @@ def _log_progress(message: str) -> None:
     print(f"[permucn] {message}", file=sys.stderr, flush=True)
 
 
+def _log_warning(message: str) -> None:
+    print(f"[permucn][warning] {message}", file=sys.stderr, flush=True)
+
+
 def _compute_family_binary(
     deltas: List[int],
     perm: PermutationCache,
@@ -443,6 +447,19 @@ def run(args: argparse.Namespace) -> int:
         posterior_hi=args.asr_posterior_hi,
         posterior_lo=args.asr_posterior_lo,
     )
+    internal_nodes = [i for i, species in enumerate(tree.tip_species_by_node) if species is None]
+    ambiguous_nodes = [
+        i
+        for i in internal_nodes
+        if args.asr_posterior_lo < asr.posterior_by_node[i][1] < args.asr_posterior_hi
+    ]
+    if ambiguous_nodes:
+        preview = ", ".join(str(i) for i in ambiguous_nodes[:8])
+        _log_warning(
+            "ASR posterior is ambiguous (--asr-posterior-lo < posterior < --asr-posterior-hi) for "
+            f"{len(ambiguous_nodes)}/{len(internal_nodes)} internal nodes "
+            f"(node indices: {preview})"
+        )
 
     fg_01_mask = asr.fg_01_mask
     fg_10_mask = asr.fg_10_mask if args.include_trait_loss else 0
