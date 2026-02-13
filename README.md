@@ -52,7 +52,7 @@ permucn --help
 
 ## Quick Start
 
-Run with bundled example data:
+Run with bundled example data (full-sized):
 
 ```bash
 permucn \
@@ -67,6 +67,22 @@ permucn \
   --qvalue-threshold 0.05 \
   --perm-cache results/perm_cache.json.gz \
   --out-prefix results/permucn
+```
+
+Fast smoke test with a small toy dataset:
+
+```bash
+permucn \
+  --cafe-dir test_data/toy_example/cafe_output \
+  --trait-tsv test_data/toy_example/species_trait.tsv \
+  --mode binary \
+  --no-include-trait-loss \
+  --asr-posterior-hi 0.6 \
+  --asr-posterior-lo 0.4 \
+  --n-perm-initial 20 \
+  --n-perm-refine 50 \
+  --seed 7 \
+  --out-prefix results/toy_binary
 ```
 
 ## Required Inputs

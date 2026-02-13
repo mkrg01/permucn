@@ -1,0 +1,37 @@
+Model Gamma Final Likelihood (-lnL): 1.0188e+06
+Lambda: 0.0031908005545955
+Maximum possible lambda for this topology: 0.00602979
+165 values were attempted (4% rejected)
+The following families had failure rates >20% of the time:
+110928at7898 had 95 failures
+122100at7898 had 39 failures
+148681at7898 had 42 failures
+202463at7898 had 35 failures
+233959at7898 had 38 failures
+241466at7898 had 38 failures
+268115at7898 had 41 failures
+276277at7898 had 39 failures
+287126at7898 had 37 failures
+332418at7898 had 52 failures
+396552at7898 had 34 failures
+397144at7898 had 32 failures
+397931at7898 had 35 failures
+431415at7898 had 35 failures
+466100at7898 had 34 failures
+471603at7898 had 35 failures
+483396at7898 had 47 failures
+484769at7898 had 34 failures
+486288at7898 had 49 failures
+487461at7898 had 49 failures
+488653at7898 had 34 failures
+491429at7898 had 39 failures
+497012at7898 had 32 failures
+498478at7898 had 54 failures
+499138at7898 had 35 failures
+499263at7898 had 37 failures
+499320at7898 had 48 failures
+70142at7898 had 32 failures
+70878at7898 had 38 failures
+74432at7898 had 35 failures
+99744at7898 had 35 failures
+Alpha: 1.5312

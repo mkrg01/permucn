@@ -1,0 +1,4 @@
+#FamilyID	pvalue	Significant at 0.05
+fam1	0.2	n
+fam2	0.1	n
+fam3	1.0	n
