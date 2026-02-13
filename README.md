@@ -1,42 +1,19 @@
 # permucn
 
-`permucn` is a permutation-based CLI for testing associations between binary trait transitions and gene-family copy-number evolution from CAFE outputs.
+`permucn` is a CLI tool for testing whether trait transitions (`0->1`, optionally `1->0`) are associated with gene-family copy-number evolution, using CAFE outputs.
 
-## What This Tool Does
+## What You Can Do
 
-- Reads CAFE outputs (`Gamma_change.tab`, `Gamma_asr.tre`, optional `Gamma_branch_probabilities.tab`)
-- Infers trait ancestral states by ML (`Mk2`) from a species trait table
-- Defines foreground branches (`0->1`, optional `1->0`)
-- Computes per-family empirical one-sided p-values by constrained branch permutation
-- Applies BH correction (`q_bh`) and writes summary/diagnostic outputs
+- Run association tests per gene family with permutation-based empirical p-values
+- Control FDR using BH-adjusted q-values (`q_bh`)
+- Focus on trait-gain branches (`0->1`) with optional trait-loss inclusion
+- Export reproducible result tables and diagnostics
 
-## README and Wiki Split
-
-This `README.md` is the "start in 5 minutes" document.
-
-Use the repository-local docs under `wiki/` for deeper references and long-form docs:
-
-- Wiki Home: `wiki/Home.md`
-- Getting Started: `wiki/Getting-Started.md`
-- Input Format: `wiki/Input-Format.md`
-- CLI Reference: `wiki/CLI-Reference.md`
-- Output Interpretation: `wiki/Output-Interpretation.md`
-- Algorithm Notes: `wiki/Algorithm-Notes.md`
-- FAQ / Troubleshooting: `wiki/FAQ.md`
-
-Suggested maintenance policy:
-
-- Keep `README.md` focused on overview, install, quick start, and minimal troubleshooting.
-- Move long explanations (input edge cases, algorithm details, output interpretation examples) to Wiki pages.
-- When adding/changing CLI options, update both:
-  - README quick examples
-  - Wiki `CLI-Reference` and relevant deep-dive pages
-
-## Installation
+## Install
 
 Requirements:
 
-- Python `>=3.12` (`pyproject.toml`)
+- Python `>=3.12`
 
 Install from source:
 
@@ -52,24 +29,7 @@ permucn --help
 
 ## Quick Start
 
-Run with bundled example data (full-sized):
-
-```bash
-permucn \
-  --cafe-dir gfe_data/genome_evolution/cafe/cafe_output \
-  --trait-tsv gfe_data/species_trait/species_trait.tsv \
-  --mode binary \
-  --direction gain \
-  --jobs 4 \
-  --n-perm-initial 1000 \
-  --n-perm-refine 1000000 \
-  --refine-p-threshold 0.01 \
-  --qvalue-threshold 0.05 \
-  --perm-cache results/perm_cache.json.gz \
-  --out-prefix results/permucn
-```
-
-Fast smoke test with a small toy dataset:
+Run with bundled toy data (fast check):
 
 ```bash
 permucn \
@@ -85,31 +45,48 @@ permucn \
   --out-prefix results/toy_binary
 ```
 
+Run with the larger polar fish dataset:
+
+```bash
+permucn \
+  --cafe-dir test_data/polar_fish/cafe_output \
+  --trait-tsv test_data/polar_fish/species_trait.tsv \
+  --mode binary \
+  --direction gain \
+  --jobs 4 \
+  --n-perm-initial 1000 \
+  --n-perm-refine 1000000 \
+  --refine-p-threshold 0.01 \
+  --qvalue-threshold 0.05 \
+  --perm-cache results/perm_cache.json.gz \
+  --out-prefix results/polar_fish
+```
+
 ## Required Inputs
 
 `--cafe-dir` must contain:
 
 - `Gamma_change.tab` (required)
-- `Gamma_asr.tre` (required, first `TREE ...;` entry is used)
+- `Gamma_asr.tre` (required; first `TREE ...;` entry is used)
 - `Gamma_branch_probabilities.tab` (required only with `--cafe-significant-only`)
-- `Gamma_family_results.txt` (optional companion file; not required by current CLI execution path)
+- `Gamma_family_results.txt` (optional)
 
 `--trait-tsv` must be a tab-separated table with:
 
 - one species column (auto-detected from common names like `species`, `taxon`, `name`; fallback is first column)
 - one binary trait column (`0/1`)
 
-Trait-column behavior:
+Trait column rules:
 
-- If exactly one binary column is found, it is auto-selected.
-- If multiple binary columns are found, set `--trait-column`.
-- Missing/invalid trait values fail fast.
+- If exactly one binary column exists, it is auto-selected.
+- If multiple binary columns exist, specify `--trait-column`.
+- Missing or invalid trait values stop the run with an error.
 
-Species names in trait TSV must exactly match tree tip species names (derived from tip labels such as `Acanthochromis_polyacanthus<66>` -> `Acanthochromis_polyacanthus`).
+Species names in trait TSV must exactly match tree tip species names (for example, `Acanthochromis_polyacanthus<66>` maps to `Acanthochromis_polyacanthus`).
 
-## Common Usage Patterns
+## Common Usage
 
-Binary mode (default):
+Default binary mode:
 
 ```bash
 permucn \
@@ -151,9 +128,9 @@ Notes:
 
 Always written:
 
-- `<out-prefix>.family_results.tsv`
-- `<out-prefix>.run_metadata.json`
-- `<out-prefix>.top_hits.tsv` (`q_bh <= --qvalue-threshold`)
+- `<out-prefix>.family_results.tsv` (main per-family results)
+- `<out-prefix>.run_metadata.json` (run settings and metadata)
+- `<out-prefix>.top_hits.tsv` (families passing `q_bh <= --qvalue-threshold`)
 
 Written when at least one tested family has p-values:
 
@@ -165,29 +142,17 @@ Optional PDFs (`--make-plots`, requires `matplotlib`):
 - `<out-prefix>.pvalue_hist.pdf`
 - `<out-prefix>.qq.pdf`
 
-### `family_results.tsv` Columns
+### `family_results.tsv` Key Columns
 
-Base columns:
-
-- `family_id`
-- `mode`
-- `direction`
-- `include_trait_loss`
-- `n_fg_01`
-- `n_fg_10`
-- `stat_obs`
-- `p_empirical`
-- `q_bh`
-- `n_perm_used`
-- `refined`
-- `status`
+- `family_id`: gene family identifier
+- `p_empirical`: empirical one-sided p-value from permutations
+- `q_bh`: BH-adjusted p-value
+- `stat_obs`: observed test statistic
+- `n_perm_used`: number of permutations used for that family
+- `status`: test status (`ok`, `no_valid_foreground`)
 
 Binary-mode extra columns:
 
-- `fg_concordant_count`
-- `fg_total`
-- `bg_concordant_count`
-- `bg_total`
 - `fg_concordance_rate`
 - `bg_concordance_rate`
 
@@ -195,29 +160,32 @@ Rate-mode extra columns:
 
 - `fg_mean_signed_rate`
 - `bg_mean_signed_rate`
-- `fg_median_signed_rate`
-- `bg_median_signed_rate`
-
-Status values:
-
-- `ok`: tested normally
-- `no_valid_foreground`: no inferred foreground branches
 
 ## Reproducibility and Performance
 
-- Set `--seed` for deterministic permutations and reproducible outputs.
-- Set `--jobs`:
+- Use `--seed` to make results reproducible.
+- Use `--jobs`:
   - `1`: sequential
-  - `0`: auto (CPU count)
-  - `>=2`: parallel permutation generation and family scoring
+  - `0`: auto-detect CPU count
+  - `>=2`: parallel processing
 - Use `--perm-cache` (`.json` or `.json.gz`) to reuse compatible permutation sets across runs.
 
-Cache compatibility checks include tree fingerprint, foreground masks, and `include_trait_loss`.
+## More Documentation
+
+For detailed references:
+
+- `wiki/Home.md`
+- `wiki/Getting-Started.md`
+- `wiki/Input-Format.md`
+- `wiki/CLI-Reference.md`
+- `wiki/Output-Interpretation.md`
+- `wiki/Algorithm-Notes.md`
+- `wiki/FAQ.md`
 
 ## Troubleshooting
 
 - `Species mismatch between trait table and tree tips.`  
-  Align species names exactly between trait table and tip labels.
+  Make species names identical between your trait table and tree tips.
 - `Multiple binary trait columns detected ...`  
   Specify `--trait-column`.
 - `No binary trait column detected automatically ...`  
@@ -226,14 +194,6 @@ Cache compatibility checks include tree fingerprint, foreground masks, and `incl
   Add that file or disable `--cafe-significant-only`.
 - `Non-positive branch lengths found ... rate mode`  
   Use a tree with positive branch lengths or switch to `binary` mode.
-
-## Development
-
-Run tests:
-
-```bash
-python -m unittest discover -s tests -v
-```
 
 ## License
 

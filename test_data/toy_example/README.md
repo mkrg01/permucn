@@ -1,6 +1,6 @@
 # toy_example
 
-This is a minimal, reproducible input dataset for quickly validating `permucn`.
+Smallest dataset for quick `permucn` validation. Use this first to confirm CLI execution and output format.
 
 Contents:
 
