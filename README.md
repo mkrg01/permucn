@@ -14,18 +14,15 @@
 
 This `README.md` is the "start in 5 minutes" document.
 
-Use the Wiki for deeper references and long-form docs:
+Use the repository-local docs under `wiki/` for deeper references and long-form docs:
 
-- Wiki Home: https://github.com/mkrg01/permucn/wiki
-- Getting Started: https://github.com/mkrg01/permucn/wiki/Getting-Started
-- Input Format: https://github.com/mkrg01/permucn/wiki/Input-Format
-- CLI Reference: https://github.com/mkrg01/permucn/wiki/CLI-Reference
-- Output Interpretation: https://github.com/mkrg01/permucn/wiki/Output-Interpretation
-- Algorithm Notes: https://github.com/mkrg01/permucn/wiki/Algorithm-Notes
-- FAQ / Troubleshooting: https://github.com/mkrg01/permucn/wiki/FAQ
-
-If a page does not exist yet, treat this list as the recommended Wiki structure.
-Wiki source markdown is also tracked in this repository under `wiki/`.
+- Wiki Home: `wiki/Home.md`
+- Getting Started: `wiki/Getting-Started.md`
+- Input Format: `wiki/Input-Format.md`
+- CLI Reference: `wiki/CLI-Reference.md`
+- Output Interpretation: `wiki/Output-Interpretation.md`
+- Algorithm Notes: `wiki/Algorithm-Notes.md`
+- FAQ / Troubleshooting: `wiki/FAQ.md`
 
 Suggested maintenance policy:
 
