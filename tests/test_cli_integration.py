@@ -345,6 +345,10 @@ class TestCliIntegration(unittest.TestCase):
         self.assertEqual(viz["top_hits_tsv"], str(top_hits))
         self.assertEqual(viz["pvalue_hist_tsv"], str(hist_tsv))
         self.assertEqual(viz["qq_tsv"], str(qq_tsv))
+        self.assertIn("pvalue_hist_pdf", viz)
+        self.assertIn("qq_pdf", viz)
+        self.assertNotIn("pvalue_hist_png", viz)
+        self.assertNotIn("qq_png", viz)
 
     def test_parallel_matches_sequential(self) -> None:
         td, cafe_dir, trait_tsv = self._build_toy_inputs()

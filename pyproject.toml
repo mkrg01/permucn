@@ -7,7 +7,7 @@ name = "permucn"
 version = "0.1.0"
 description = "Permutation-based test for copy-number and binary trait association"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = {text = "MIT"}
 authors = [
   {name = "permucn"}
