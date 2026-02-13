@@ -1,3 +1,5 @@
+import contextlib
+import io
 import json
 import tempfile
 import unittest
@@ -110,6 +112,37 @@ class TestCliIntegration(unittest.TestCase):
         self.assertEqual(meta["parameters"]["mode"], "binary")
         self.assertEqual(meta["trait_columns"]["trait_column_source"], "auto")
         self.assertGreater(meta["results"]["n_tested"], 0)
+
+    def test_progress_logs_are_emitted(self) -> None:
+        td, cafe_dir, trait_tsv = self._build_toy_inputs()
+        out_prefix = td / "out" / "progress"
+        stderr = io.StringIO()
+
+        with contextlib.redirect_stderr(stderr):
+            rc = main(
+                [
+                    "--mode",
+                    "binary",
+                    "--cafe-dir",
+                    str(cafe_dir),
+                    "--trait-tsv",
+                    str(trait_tsv),
+                    "--no-include-trait-loss",
+                    "--n-perm-initial",
+                    "5",
+                    "--n-perm-refine",
+                    "10",
+                    "--seed",
+                    "7",
+                    "--out-prefix",
+                    str(out_prefix),
+                ]
+            )
+        self.assertEqual(rc, 0)
+        logs = stderr.getvalue()
+        self.assertIn("[permucn] [1/8]", logs)
+        self.assertIn("[permucn] [5/8]", logs)
+        self.assertIn("[permucn] [8/8] Run complete; outputs were written successfully", logs)
 
     def test_rate_run_end_to_end(self) -> None:
         td, cafe_dir, trait_tsv = self._build_toy_inputs()

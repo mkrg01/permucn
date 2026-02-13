@@ -189,6 +189,10 @@ def _family_result_base(
     }
 
 
+def _log_progress(message: str) -> None:
+    print(f"[permucn] {message}", file=sys.stderr, flush=True)
+
+
 def _compute_family_binary(
     deltas: List[int],
     perm: PermutationCache,
@@ -415,6 +419,7 @@ def _evaluate_families(
 
 
 def run(args: argparse.Namespace) -> int:
+    _log_progress("[1/8] Validating arguments and inputs")
     _validate_args(args)
 
     cafe_dir = Path(args.cafe_dir)
@@ -426,6 +431,7 @@ def run(args: argparse.Namespace) -> int:
         if not paths[key].exists():
             raise FileNotFoundError(f"Required input file missing: {paths[key]}")
 
+    _log_progress("[2/8] Loading tree/trait data and running trait ASR")
     tree = load_canonical_tree(paths["asr_tree"])
     root_key = tree.branch_keys_by_node[tree.root]
 
@@ -443,7 +449,11 @@ def run(args: argparse.Namespace) -> int:
     n_fg_01 = fg_01_mask.bit_count()
     n_fg_10 = fg_10_mask.bit_count()
     fg_total = n_fg_01 + n_fg_10
+    _log_progress(
+        f"[2/8] Foreground branches detected: 0->1={n_fg_01}, 1->0={n_fg_10}, total={fg_total}"
+    )
 
+    _log_progress("[3/8] Preparing permutation cache and initial permutations")
     cache_spec = make_cache_spec(
         tree=tree,
         include_trait_loss=args.include_trait_loss,
@@ -474,6 +484,7 @@ def run(args: argparse.Namespace) -> int:
         if perm_initial is not None:
             initial_source = "cache"
     if perm_initial is None:
+        _log_progress(f"[3/8] Generating initial permutations (n={args.n_perm_initial}, jobs={jobs})")
         perm_gen = PermutationGenerator(
             tree=tree,
             obs_mask_01=fg_01_mask,
@@ -485,8 +496,11 @@ def run(args: argparse.Namespace) -> int:
         initial_source = "generated"
         if cache_bundle is not None:
             put_stage_cache(cache_bundle, "initial", perm_initial)
+    else:
+        _log_progress(f"[3/8] Reusing initial permutations from cache (n={args.n_perm_initial})")
 
     # Family delta matrix.
+    _log_progress("[4/8] Loading family change matrix")
     change = load_change_matrix(
         path=paths["change"],
         branch_to_index=tree.branch_index_by_key,
@@ -500,6 +514,7 @@ def run(args: argparse.Namespace) -> int:
                 "--cafe-significant-only requires Gamma_branch_probabilities.tab, "
                 f"but file is missing: {paths['prob']}"
             )
+        _log_progress(f"[4/8] Loading branch probabilities for significance masking (alpha={args.cafe_alpha})")
         prob_map = load_probability_map(
             path=paths["prob"],
             branch_to_index=tree.branch_index_by_key,
@@ -525,9 +540,13 @@ def run(args: argparse.Namespace) -> int:
     cafe_sig_masks: List[int] | None = None
 
     if fg_total == 0:
+        _log_progress("[5/8] Skipping family tests because no valid foreground branches were found")
         for row in rows:
             row["status"] = "no_valid_foreground"
     else:
+        _log_progress(
+            f"[5/8] Running initial family tests for {len(rows)} families (n_perm={args.n_perm_initial})"
+        )
         if args.cafe_significant_only:
             cafe_sig_masks = [build_significance_mask(prob_map.get(fam_id), args.cafe_alpha) for fam_id in change.family_ids]
 
@@ -550,6 +569,7 @@ def run(args: argparse.Namespace) -> int:
             row["n_perm_used"] = args.n_perm_initial
             row["status"] = "ok"
             pvalues[i] = row["p_empirical"]
+        _log_progress("[5/8] Initial family tests completed")
 
     # Optional refinement stage.
     refined_indices = [
@@ -563,11 +583,15 @@ def run(args: argparse.Namespace) -> int:
 
     perm_refine = None
     if refined_indices:
+        _log_progress(
+            f"[6/8] Running refinement for {len(refined_indices)} families (n_perm={args.n_perm_refine})"
+        )
         if cache_bundle is not None:
             perm_refine = get_stage_cache(cache_bundle, "refine", args.n_perm_refine)
             if perm_refine is not None:
                 refine_source = "cache"
         if perm_refine is None:
+            _log_progress(f"[6/8] Generating refine permutations (n={args.n_perm_refine}, jobs={jobs})")
             refine_seed = None if args.seed is None else args.seed + 7919
             refine_gen = PermutationGenerator(
                 tree=tree,
@@ -580,6 +604,8 @@ def run(args: argparse.Namespace) -> int:
             refine_source = "generated"
             if cache_bundle is not None:
                 put_stage_cache(cache_bundle, "refine", perm_refine)
+        else:
+            _log_progress(f"[6/8] Reusing refine permutations from cache (n={args.n_perm_refine})")
 
         context_refine = _build_worker_context(
             mode=args.mode,
@@ -599,7 +625,11 @@ def run(args: argparse.Namespace) -> int:
             rows[i]["n_perm_used"] = args.n_perm_refine
             rows[i]["refined"] = True
             pvalues[i] = rows[i]["p_empirical"]
+        _log_progress("[6/8] Refinement completed")
+    else:
+        _log_progress("[6/8] Refinement skipped (no families passed refine criteria)")
 
+    _log_progress("[7/8] Applying multiple-testing correction and writing result files")
     qvals = bh_adjust_with_none(pvalues)
     for row, q in zip(rows, qvals):
         row["q_bh"] = q
@@ -620,6 +650,7 @@ def run(args: argparse.Namespace) -> int:
 
     if args.perm_cache and cache_bundle is not None:
         save_cache_bundle(args.perm_cache, cache_bundle)
+        _log_progress(f"[7/8] Updated permutation cache: {args.perm_cache}")
 
     metadata = {
         "tool": "permucn",
@@ -706,6 +737,7 @@ def run(args: argparse.Namespace) -> int:
         },
     }
     write_json(out_json, metadata)
+    _log_progress("[8/8] Run complete; outputs were written successfully")
 
     print(f"Wrote family results: {out_tsv}")
     print(f"Wrote metadata: {out_json}")
