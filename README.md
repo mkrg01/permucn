@@ -1,59 +1,36 @@
 # permucn
 
-`permucn` is a CLI tool for testing whether trait transitions (`0->1`, optionally `1->0`) are associated with gene-family copy-number evolution, using CAFE outputs.
-
-## What You Can Do
-
-- Run association tests per gene family with permutation-based empirical p-values
-- Control FDR using BH-adjusted q-values (`q_bh`)
-- Focus on trait-gain branches (`0->1`) with optional trait-loss inclusion
-- Export reproducible result tables and diagnostics
+`permucn` is a command-line tool for testing whether trait transitions (`0->1`, optionally `1->0`) are associated with gene-family copy-number evolution from CAFE outputs.
 
 ## Install
 
-Requirements:
-
-- Python `>=3.12`
-
-Install directly from GitHub (no `git clone` required):
+Requirements: Python `>=3.12`
 
 ```bash
 pip install "permucn @ git+https://github.com/mkrg01/permucn.git"
 ```
 
-After publishing to PyPI:
+If published on PyPI:
 
 ```bash
 pip install permucn
 ```
 
-Install with plot support:
+Optional plot support:
 
 ```bash
 pip install "permucn[plots] @ git+https://github.com/mkrg01/permucn.git"
 ```
 
-For local development:
-
-```bash
-pip install -e .
-```
-
-Check CLI:
-
-```bash
-permucn --help
-```
-
 ## Quick Start
 
-Fetch toy test data (works for `pip install` and source checkout):
+1. Fetch sample data (works after `pip install`):
 
 ```bash
 permucn get-test-data --dataset toy_example --out-dir permucn_test_data
 ```
 
-Run with toy data (fast check):
+2. Run `permucn`:
 
 ```bash
 permucn \
@@ -66,159 +43,73 @@ permucn \
   --out-prefix results/toy_binary
 ```
 
-Run with the larger polar fish dataset:
+3. Check outputs:
+
+- `results/toy_binary.family_results.tsv`
+- `results/toy_binary.run_metadata.json`
+- `results/toy_binary.top_hits.tsv`
+
+For a larger sample dataset:
 
 ```bash
 permucn get-test-data --dataset polar_fish --out-dir permucn_test_data
 ```
 
-```bash
-permucn \
-  --cafe-dir permucn_test_data/polar_fish/cafe_output \
-  --trait-tsv permucn_test_data/polar_fish/species_trait.tsv \
-  --jobs 4 \
-  --perm-cache results/perm_cache.json.gz \
-  --out-prefix results/polar_fish
-```
-
 ## Required Inputs
 
-`--cafe-dir` must contain:
+`--cafe-dir` must include:
 
 - `Gamma_change.tab` (required)
-- `Gamma_asr.tre` (required; first `TREE ...;` entry is used)
+- `Gamma_asr.tre` (required)
 - `Gamma_branch_probabilities.tab` (required only with `--cafe-significant-only`)
 - `Gamma_family_results.txt` (optional)
 
-Tree branch length rules:
+`--trait-tsv` must be a TSV with:
 
-- ASR requires finite branch lengths (`NaN`/`inf` not allowed).
-- Negative branch lengths are not allowed.
-- `rate` mode additionally requires strictly positive non-root branch lengths.
-
-`--trait-tsv` must be a tab-separated table with:
-
-- one species column (auto-detected from common names like `species`, `taxon`, `name`; fallback is first column)
+- one species column (`species`, `taxon`, `name`, etc.; first column fallback)
 - one binary trait column (`0/1`)
 
-Trait column rules:
+Important rules:
 
-- If exactly one binary column exists, it is auto-selected.
-- If multiple binary columns exist, specify `--trait-column`.
-- Missing or invalid trait values stop the run with an error.
+- Species names in trait TSV must match tree tip names.
+- If multiple binary trait columns exist, specify `--trait-column`.
+- `--cafe-significant-only` is valid only in `binary` mode.
+- `rate` mode requires strictly positive non-root branch lengths.
 
-Species names in trait TSV must exactly match tree tip species names (for example, `Acanthochromis_polyacanthus<66>` maps to `Acanthochromis_polyacanthus`).
-
-## Common Usage
+## Common Commands
 
 Default binary mode:
 
 ```bash
-permucn \
-  --cafe-dir <cafe_output_dir> \
-  --trait-tsv <trait.tsv> \
-  --out-prefix results/binary_run
+permucn --cafe-dir <cafe_output_dir> --trait-tsv <trait.tsv> --out-prefix results/binary
 ```
 
-Binary mode using only CAFE-significant branch events:
+Binary mode with CAFE-significant events only:
 
 ```bash
-permucn \
-  --cafe-dir <cafe_output_dir> \
-  --trait-tsv <trait.tsv> \
-  --cafe-significant-only \
-  --out-prefix results/binary_sig
+permucn --cafe-dir <cafe_output_dir> --trait-tsv <trait.tsv> --cafe-significant-only --out-prefix results/binary_sig
 ```
 
 Rate mode:
 
 ```bash
-permucn \
-  --cafe-dir <cafe_output_dir> \
-  --trait-tsv <trait.tsv> \
-  --mode rate \
-  --out-prefix results/rate_run
+permucn --cafe-dir <cafe_output_dir> --trait-tsv <trait.tsv> --mode rate --out-prefix results/rate
 ```
-
-Notes:
-
-- `--cafe-significant-only` is valid only in `binary` mode.
-- `rate` mode requires strictly positive branch lengths in the canonical tree.
-
-## Outputs
-
-Always written:
-
-- `<out-prefix>.family_results.tsv` (main per-family results)
-- `<out-prefix>.run_metadata.json` (run settings and metadata)
-- `<out-prefix>.top_hits.tsv` (families passing `q_bh <= --qvalue-threshold`)
-- `<out-prefix>.top_pvalues.tsv` (top `--pvalue-top-n` families by smallest `p_empirical`; default top 100, set `0` to disable)
-
-Written when at least one tested family has p-values:
-
-- `<out-prefix>.pvalue_hist.tsv`
-- `<out-prefix>.qq.tsv`
-
-Optional PDFs (`--make-plots`, requires `matplotlib`):
-
-- `<out-prefix>.pvalue_hist.pdf`
-- `<out-prefix>.qq.pdf`
-
-### `family_results.tsv` Key Columns
-
-- `family_id`: gene family identifier
-- `p_empirical`: empirical one-sided p-value from permutations
-- `q_bh`: BH-adjusted p-value
-- `stat_obs`: observed test statistic
-- `n_perm_used`: number of permutations used for that family
-- `status`: test status (`ok`, `no_valid_foreground`)
-
-Binary-mode extra columns:
-
-- `fg_concordance_rate`
-- `bg_concordance_rate`
-
-Rate-mode extra columns:
-
-- `fg_mean_signed_rate`
-- `bg_mean_signed_rate`
 
 ## Reproducibility and Performance
 
-- Use `--seed` to make results reproducible.
-- Use `--jobs`:
-  - `1`: sequential
-  - `0`: auto-detect CPU count
-  - `>=2`: parallel processing
-- Use `--perm-cache` (`.json` or `.json.gz`) to reuse compatible permutation sets across runs.
+- `--seed`: reproducible permutations
+- `--jobs`: parallelism (`1` sequential, `0` auto CPU)
+- `--perm-cache`: reuse permutations across runs (`.json` / `.json.gz`)
 
-## More Documentation
-
-For detailed references:
+## Documentation
 
 - `wiki/Home.md`
-- `wiki/Getting-Started.md`
-- `wiki/Input-Format.md`
 - `wiki/CLI-Reference.md`
+- `wiki/Input-Format.md`
 - `wiki/Output-Interpretation.md`
-- `wiki/Algorithm-Notes.md`
 - `wiki/FAQ.md`
-
-## Troubleshooting
-
-- `Species mismatch between trait table and tree tips.`  
-  Make species names identical between your trait table and tree tips.
-- `Multiple binary trait columns detected ...`  
-  Specify `--trait-column`.
-- `No binary trait column detected automatically ...`  
-  Ensure target trait column is strictly `0/1`, then pass `--trait-column`.
-- `--cafe-significant-only requires Gamma_branch_probabilities.tab`  
-  Add that file or disable `--cafe-significant-only`.
-- `Non-positive branch lengths found ... rate mode`  
-  Use a tree with positive branch lengths or switch to `binary` mode.
-- `Invalid branch lengths in tree for ASR ...`  
-  Ensure all non-root branches in `Gamma_asr.tre` have finite, non-negative lengths.
 
 ## License
 
-MIT (see `LICENSE`).
+MIT (`LICENSE`)
