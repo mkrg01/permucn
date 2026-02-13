@@ -49,7 +49,6 @@ permucn \
   --cafe-dir test_data/polar_fish/cafe_output \
   --trait-tsv test_data/polar_fish/species_trait.tsv \
   --jobs 4 \
-  --n-perm-initial 1000 \
   --perm-cache results/perm_cache.json.gz \
   --out-prefix results/polar_fish
 ```
