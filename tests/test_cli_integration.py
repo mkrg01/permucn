@@ -259,6 +259,9 @@ class TestCliIntegration(unittest.TestCase):
 
         meta = json.loads(Path(str(out_prefix) + ".run_metadata.json").read_text(encoding="utf-8"))
         self.assertEqual(meta["results"]["n_tested"], 0)
+        self.assertEqual(meta["permutation"]["cache"]["initial_source"], "skipped_no_foreground")
+        self.assertEqual(meta["permutation"]["cache"]["refine_source"], "skipped_no_foreground")
+        self.assertEqual(meta["permutation"]["initial"]["n_perm"], 0)
 
     def test_warning_when_potential_transition_branches_are_skipped_by_thresholding(self) -> None:
         td, cafe_dir, trait_tsv = self._build_toy_inputs(

@@ -103,23 +103,40 @@ def get_stage_cache(bundle: Dict[str, Any], stage: str, n_perm_required: int) ->
     if not isinstance(raw, dict):
         return None
 
-    n_perm = int(raw.get("n_perm", 0))
+    try:
+        n_perm = int(raw.get("n_perm", 0))
+    except (TypeError, ValueError):
+        return None
     if n_perm < n_perm_required:
         return None
 
     masks_01_hex = raw.get("masks_01_hex", [])
     masks_10_hex = raw.get("masks_10_hex", [])
+    if not isinstance(masks_01_hex, list) or not isinstance(masks_10_hex, list):
+        return None
     if len(masks_01_hex) < n_perm_required or len(masks_10_hex) < n_perm_required:
         return None
 
-    masks_01 = [_hex_to_mask(h) for h in masks_01_hex[:n_perm_required]]
-    masks_10 = [_hex_to_mask(h) for h in masks_10_hex[:n_perm_required]]
+    try:
+        masks_01 = [_hex_to_mask(h) for h in masks_01_hex[:n_perm_required]]
+        masks_10 = [_hex_to_mask(h) for h in masks_10_hex[:n_perm_required]]
+    except (TypeError, ValueError):
+        return None
+
+    try:
+        total_attempts = int(raw.get("total_attempts", 0))
+    except (TypeError, ValueError):
+        total_attempts = 0
+    try:
+        total_restarts = int(raw.get("total_restarts", 0))
+    except (TypeError, ValueError):
+        total_restarts = 0
 
     return PermutationCache(
         masks_01=masks_01,
         masks_10=masks_10,
-        total_attempts=int(raw.get("total_attempts", 0)),
-        total_restarts=int(raw.get("total_restarts", 0)),
+        total_attempts=total_attempts,
+        total_restarts=total_restarts,
     )
 
 

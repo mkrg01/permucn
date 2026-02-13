@@ -30,6 +30,7 @@ def run_trait_asr_ml(
 ) -> ASRResult:
     """Infer ancestral states and foreground transition branches under an ML Mk2 model."""
     _validate_species_match(tree, species_to_state)
+    _validate_branch_lengths(tree)
 
     tip_state_by_node: List[Optional[int]] = [None] * len(tree.labels)
     for node_id, species in enumerate(tree.tip_species_by_node):
@@ -92,6 +93,21 @@ def _validate_species_match(tree: CanonicalTree, species_to_state: Dict[str, int
             preview = ", ".join(extra[:8])
             msg.append(f"Extra in trait table ({len(extra)}): {preview}")
         raise ValueError(" ".join(msg))
+
+
+def _validate_branch_lengths(tree: CanonicalTree) -> None:
+    bad: List[str] = []
+    for bidx, node_id in enumerate(tree.node_by_branch_index):
+        length = tree.branch_length_by_node[node_id]
+        if not math.isfinite(length) or length < 0.0:
+            bad.append(f"{tree.branch_key_by_index[bidx]}={length}")
+
+    if bad:
+        preview = ", ".join(bad[:6])
+        raise ValueError(
+            "Invalid branch lengths in tree for ASR; require finite and >= 0: "
+            f"{preview}{' ...' if len(bad) > 6 else ''}"
+        )
 
 
 def _fit_rates_ml(

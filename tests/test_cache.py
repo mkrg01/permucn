@@ -57,6 +57,21 @@ class TestCache(unittest.TestCase):
         got4 = get_stage_cache(loaded, "initial", 4)
         self.assertIsNone(got4)
 
+    def test_corrupt_stage_is_treated_as_cache_miss(self) -> None:
+        tree = self._tree()
+        spec = make_cache_spec(tree, include_trait_loss=True, fg_01_mask=0b10, fg_10_mask=0b01)
+        bundle = empty_bundle(spec)
+        bundle["initial"] = {
+            "n_perm": 3,
+            "masks_01_hex": ["1", "zz", "4"],
+            "masks_10_hex": ["0", "1", "0"],
+            "total_attempts": "bad",
+            "total_restarts": 0,
+        }
+
+        got = get_stage_cache(bundle, "initial", 2)
+        self.assertIsNone(got)
+
 
 if __name__ == "__main__":
     unittest.main()

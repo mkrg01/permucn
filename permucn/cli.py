@@ -513,6 +513,7 @@ def run(args: argparse.Namespace) -> int:
     cache_loaded = False
     initial_source = "generated"
     refine_source = "not_used"
+    perm_initial = None
     if args.perm_cache:
         cache_path = Path(args.perm_cache)
         if cache_path.exists():
@@ -525,28 +526,32 @@ def run(args: argparse.Namespace) -> int:
         else:
             cache_bundle = empty_bundle(cache_spec)
 
-    # Initial permutations.
-    perm_seed = args.seed
-    perm_initial = None
-    if cache_bundle is not None:
-        perm_initial = get_stage_cache(cache_bundle, "initial", args.n_perm_initial)
-        if perm_initial is not None:
-            initial_source = "cache"
-    if perm_initial is None:
-        _log_progress(f"[3/8] Generating initial permutations (n={args.n_perm_initial}, jobs={jobs})")
-        perm_gen = PermutationGenerator(
-            tree=tree,
-            obs_mask_01=fg_01_mask,
-            obs_mask_10=fg_10_mask,
-            include_trait_loss=args.include_trait_loss,
-            seed=perm_seed,
-        )
-        perm_initial = perm_gen.generate(args.n_perm_initial, jobs=jobs)
-        initial_source = "generated"
-        if cache_bundle is not None:
-            put_stage_cache(cache_bundle, "initial", perm_initial)
+    if fg_total == 0:
+        initial_source = "skipped_no_foreground"
+        refine_source = "skipped_no_foreground"
+        _log_progress("[3/8] Skipping permutation generation because no foreground branches were found")
     else:
-        _log_progress(f"[3/8] Reusing initial permutations from cache (n={args.n_perm_initial})")
+        # Initial permutations.
+        perm_seed = args.seed
+        if cache_bundle is not None:
+            perm_initial = get_stage_cache(cache_bundle, "initial", args.n_perm_initial)
+            if perm_initial is not None:
+                initial_source = "cache"
+        if perm_initial is None:
+            _log_progress(f"[3/8] Generating initial permutations (n={args.n_perm_initial}, jobs={jobs})")
+            perm_gen = PermutationGenerator(
+                tree=tree,
+                obs_mask_01=fg_01_mask,
+                obs_mask_10=fg_10_mask,
+                include_trait_loss=args.include_trait_loss,
+                seed=perm_seed,
+            )
+            perm_initial = perm_gen.generate(args.n_perm_initial, jobs=jobs)
+            initial_source = "generated"
+            if cache_bundle is not None:
+                put_stage_cache(cache_bundle, "initial", perm_initial)
+        else:
+            _log_progress(f"[3/8] Reusing initial permutations from cache (n={args.n_perm_initial})")
 
     # Family delta matrix.
     _log_progress("[4/8] Loading family change matrix")
@@ -596,6 +601,8 @@ def run(args: argparse.Namespace) -> int:
         _log_progress(
             f"[5/8] Running initial family tests for {len(rows)} families (n_perm={args.n_perm_initial})"
         )
+        if perm_initial is None:
+            raise RuntimeError("Initial permutations are unavailable")
         if args.cafe_significant_only:
             cafe_sig_masks = [build_significance_mask(prob_map.get(fam_id), args.cafe_alpha) for fam_id in change.family_ids]
 
@@ -767,9 +774,9 @@ def run(args: argparse.Namespace) -> int:
                 "refine_source": refine_source,
             },
             "initial": {
-                "n_perm": args.n_perm_initial,
-                "total_attempts": perm_initial.total_attempts,
-                "total_restarts": perm_initial.total_restarts,
+                "n_perm": args.n_perm_initial if perm_initial is not None else 0,
+                "total_attempts": perm_initial.total_attempts if perm_initial is not None else 0,
+                "total_restarts": perm_initial.total_restarts if perm_initial is not None else 0,
             },
             "refine": {
                 "n_refined_families": len(refined_indices),

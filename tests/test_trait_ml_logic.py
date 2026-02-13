@@ -12,6 +12,12 @@ BEGIN TREES;
 END;
 """
 
+NEXUS_MISSING_LENGTH = """#nexus
+BEGIN TREES;
+  TREE t1 = ((A<0>_0:1.0,B<1>_1)<2>_0:1.0,(C<3>_1:1.0,D<4>_0:1.0)<5>_1:1.0)<6>_0;
+END;
+"""
+
 
 class TestTraitMlLogic(unittest.TestCase):
     def _load_tree(self) -> CanonicalTree:
@@ -81,6 +87,18 @@ class TestTraitMlLogic(unittest.TestCase):
         self.assertEqual(asr_ambiguous.n_fg_10, 0)
         for node_id in (2, 5, 6):
             self.assertIsNone(asr_ambiguous.hard_state_by_node[node_id])
+
+    def test_missing_branch_length_raises_clear_error(self) -> None:
+        td = tempfile.mkdtemp(prefix="permucn_trait_ml_bad_tree_")
+        p = Path(td) / "bad.tre"
+        p.write_text(NEXUS_MISSING_LENGTH, encoding="utf-8")
+        tree = load_canonical_tree(p)
+
+        with self.assertRaises(ValueError) as cm:
+            run_trait_asr_ml(tree, {"A": 0, "B": 0, "C": 0, "D": 1})
+        msg = str(cm.exception)
+        self.assertIn("Invalid branch lengths in tree for ASR", msg)
+        self.assertIn("B<1>", msg)
 
 
 if __name__ == "__main__":

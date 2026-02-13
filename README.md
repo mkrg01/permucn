@@ -72,6 +72,12 @@ permucn \
 - `Gamma_branch_probabilities.tab` (required only with `--cafe-significant-only`)
 - `Gamma_family_results.txt` (optional)
 
+Tree branch length rules:
+
+- ASR requires finite branch lengths (`NaN`/`inf` not allowed).
+- Negative branch lengths are not allowed.
+- `rate` mode additionally requires strictly positive non-root branch lengths.
+
 `--trait-tsv` must be a tab-separated table with:
 
 - one species column (auto-detected from common names like `species`, `taxon`, `name`; fallback is first column)
@@ -196,6 +202,8 @@ For detailed references:
   Add that file or disable `--cafe-significant-only`.
 - `Non-positive branch lengths found ... rate mode`  
   Use a tree with positive branch lengths or switch to `binary` mode.
+- `Invalid branch lengths in tree for ASR ...`  
+  Ensure all non-root branches in `Gamma_asr.tre` have finite, non-negative lengths.
 
 ## License
 
