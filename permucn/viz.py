@@ -12,6 +12,7 @@ def generate_visual_outputs(
     rows: Sequence[Dict[str, object]],
     out_prefix: str | Path,
     qvalue_threshold: float = 0.05,
+    pvalue_top_n: int = 0,
     hist_bins: int = 20,
     make_plots: bool = False,
 ) -> Dict[str, object]:
@@ -22,6 +23,7 @@ def generate_visual_outputs(
 
     outputs: Dict[str, object] = {
         "top_hits_tsv": None,
+        "top_pvalues_tsv": None,
         "pvalue_hist_tsv": None,
         "qq_tsv": None,
         "pvalue_hist_pdf": None,
@@ -32,6 +34,11 @@ def generate_visual_outputs(
     top_path = Path(str(out_prefix) + ".top_hits.tsv")
     _write_top_hits(valid, top_path, qvalue_threshold)
     outputs["top_hits_tsv"] = str(top_path)
+
+    if int(pvalue_top_n) > 0:
+        top_p_path = Path(str(out_prefix) + ".top_pvalues.tsv")
+        _write_top_pvalues(valid, top_p_path, pvalue_top_n)
+        outputs["top_pvalues_tsv"] = str(top_p_path)
 
     if not pvals:
         return outputs
@@ -110,6 +117,38 @@ def _histogram_rows(values: Sequence[float], bins: int) -> List[Dict[str, object
         end = (i + 1) * width
         out.append({"bin_start": start, "bin_end": end, "count": c})
     return out
+
+
+def _write_top_pvalues(rows: Sequence[Dict[str, object]], path: Path, top_n: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ranked = sorted(
+        rows,
+        key=lambda r: (
+            _none_last(r.get("p_empirical")),
+            _none_last(r.get("q_bh")),
+            -float(r.get("stat_obs", 0.0) or 0.0),
+        ),
+    )
+
+    keep = ranked[: max(0, int(top_n))]
+    fields = ["rank", "family_id", "p_empirical", "q_bh", "stat_obs", "mode", "direction", "status"]
+
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
+        writer.writeheader()
+        for i, row in enumerate(keep, start=1):
+            writer.writerow(
+                {
+                    "rank": i,
+                    "family_id": row.get("family_id"),
+                    "p_empirical": row.get("p_empirical"),
+                    "q_bh": row.get("q_bh"),
+                    "stat_obs": row.get("stat_obs"),
+                    "mode": row.get("mode"),
+                    "direction": row.get("direction"),
+                    "status": row.get("status"),
+                }
+            )
 
 
 def _qq_rows(values: Sequence[float]) -> List[Dict[str, object]]:

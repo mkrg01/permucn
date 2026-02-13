@@ -393,6 +393,8 @@ class TestCliIntegration(unittest.TestCase):
                 "5",
                 "--n-perm-refine",
                 "10",
+                "--pvalue-top-n",
+                "2",
                 "--seed",
                 "9",
                 "--out-prefix",
@@ -402,15 +404,27 @@ class TestCliIntegration(unittest.TestCase):
         self.assertEqual(rc, 0)
 
         top_hits = Path(str(out_prefix) + ".top_hits.tsv")
+        top_pvalues = Path(str(out_prefix) + ".top_pvalues.tsv")
         hist_tsv = Path(str(out_prefix) + ".pvalue_hist.tsv")
         qq_tsv = Path(str(out_prefix) + ".qq.tsv")
         self.assertTrue(top_hits.exists())
+        self.assertTrue(top_pvalues.exists())
         self.assertTrue(hist_tsv.exists())
         self.assertTrue(qq_tsv.exists())
+
+        top_lines = top_pvalues.read_text(encoding="utf-8").splitlines()
+        self.assertGreaterEqual(len(top_lines), 1)
+        self.assertLessEqual(len(top_lines), 3)  # header + top 2 rows
+        if len(top_lines) > 2:
+            header = top_lines[0].split("\t")
+            p_idx = header.index("p_empirical")
+            pvals = [float(row.split("\t")[p_idx]) for row in top_lines[1:]]
+            self.assertEqual(pvals, sorted(pvals))
 
         meta = json.loads(Path(str(out_prefix) + ".run_metadata.json").read_text(encoding="utf-8"))
         viz = meta["results"]["visual_outputs"]
         self.assertEqual(viz["top_hits_tsv"], str(top_hits))
+        self.assertEqual(viz["top_pvalues_tsv"], str(top_pvalues))
         self.assertEqual(viz["pvalue_hist_tsv"], str(hist_tsv))
         self.assertEqual(viz["qq_tsv"], str(qq_tsv))
         self.assertIn("pvalue_hist_pdf", viz)

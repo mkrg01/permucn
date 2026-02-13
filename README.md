@@ -58,6 +58,7 @@ permucn \
   --n-perm-refine 1000000 \
   --refine-p-threshold 0.01 \
   --qvalue-threshold 0.05 \
+  --pvalue-top-n 100 \
   --perm-cache results/perm_cache.json.gz \
   --out-prefix results/polar_fish
 ```
@@ -131,6 +132,7 @@ Always written:
 - `<out-prefix>.family_results.tsv` (main per-family results)
 - `<out-prefix>.run_metadata.json` (run settings and metadata)
 - `<out-prefix>.top_hits.tsv` (families passing `q_bh <= --qvalue-threshold`)
+- `<out-prefix>.top_pvalues.tsv` (top `--pvalue-top-n` families by smallest `p_empirical`, only when `--pvalue-top-n > 0`)
 
 Written when at least one tested family has p-values:
 

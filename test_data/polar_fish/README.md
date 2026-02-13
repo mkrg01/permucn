@@ -20,6 +20,7 @@ permucn \
   --n-perm-refine 1000000 \
   --refine-p-threshold 0.01 \
   --qvalue-threshold 0.05 \
+  --pvalue-top-n 100 \
   --perm-cache results/perm_cache.json.gz \
   --out-prefix results/polar_fish
 ```

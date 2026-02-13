@@ -115,6 +115,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write families with q_bh <= threshold to <out-prefix>.top_hits.tsv",
     )
     parser.add_argument(
+        "--pvalue-top-n",
+        type=int,
+        default=0,
+        help=(
+            "Write top N families ranked by smallest p_empirical to "
+            "<out-prefix>.top_pvalues.tsv (0 disables)"
+        ),
+    )
+    parser.add_argument(
         "--hist-bins",
         type=int,
         default=20,
@@ -154,10 +163,13 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--cafe-alpha must be in (0, 1)")
 
     qvalue_threshold = getattr(args, "qvalue_threshold", 0.05)
+    pvalue_top_n = getattr(args, "pvalue_top_n", 0)
     hist_bins = getattr(args, "hist_bins", 20)
     jobs = getattr(args, "jobs", 1)
     if qvalue_threshold < 0 or qvalue_threshold > 1:
         raise ValueError("--qvalue-threshold must be in [0, 1]")
+    if pvalue_top_n < 0:
+        raise ValueError("--pvalue-top-n must be >= 0")
     if hist_bins <= 0:
         raise ValueError("--hist-bins must be > 0")
     if jobs < 0:
@@ -661,6 +673,7 @@ def run(args: argparse.Namespace) -> int:
         rows=rows,
         out_prefix=out_prefix,
         qvalue_threshold=args.qvalue_threshold,
+        pvalue_top_n=args.pvalue_top_n,
         hist_bins=args.hist_bins,
         make_plots=args.make_plots,
     )
@@ -692,6 +705,7 @@ def run(args: argparse.Namespace) -> int:
             "n_perm_refine": args.n_perm_refine,
             "refine_p_threshold": args.refine_p_threshold,
             "qvalue_threshold": args.qvalue_threshold,
+            "pvalue_top_n": args.pvalue_top_n,
             "clade_bin_scheme": args.clade_bin_scheme,
             "seed": args.seed,
             "jobs_requested": args.jobs,
