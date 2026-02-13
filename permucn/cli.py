@@ -117,10 +117,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--pvalue-top-n",
         type=int,
-        default=0,
+        default=100,
         help=(
             "Write top N families ranked by smallest p_empirical to "
-            "<out-prefix>.top_pvalues.tsv (0 disables)"
+            "<out-prefix>.top_pvalues.tsv (default: 100; 0 disables)"
         ),
     )
     parser.add_argument(
@@ -163,7 +163,7 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--cafe-alpha must be in (0, 1)")
 
     qvalue_threshold = getattr(args, "qvalue_threshold", 0.05)
-    pvalue_top_n = getattr(args, "pvalue_top_n", 0)
+    pvalue_top_n = getattr(args, "pvalue_top_n", 100)
     hist_bins = getattr(args, "hist_bins", 20)
     jobs = getattr(args, "jobs", 1)
     if qvalue_threshold < 0 or qvalue_threshold > 1:

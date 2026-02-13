@@ -100,8 +100,10 @@ class TestCliIntegration(unittest.TestCase):
 
         out_tsv = Path(str(out_prefix) + ".family_results.tsv")
         out_json = Path(str(out_prefix) + ".run_metadata.json")
+        top_pvalues = Path(str(out_prefix) + ".top_pvalues.tsv")
         self.assertTrue(out_tsv.exists())
         self.assertTrue(out_json.exists())
+        self.assertTrue(top_pvalues.exists())
 
         header = out_tsv.read_text(encoding="utf-8").splitlines()[0].split("\t")
         self.assertIn("family_id", header)
@@ -111,6 +113,8 @@ class TestCliIntegration(unittest.TestCase):
         meta = json.loads(out_json.read_text(encoding="utf-8"))
         self.assertEqual(meta["parameters"]["mode"], "binary")
         self.assertEqual(meta["trait_columns"]["trait_column_source"], "auto")
+        self.assertEqual(meta["parameters"]["pvalue_top_n"], 100)
+        self.assertEqual(meta["results"]["visual_outputs"]["top_pvalues_tsv"], str(top_pvalues))
         self.assertGreater(meta["results"]["n_tested"], 0)
 
     def test_progress_logs_are_emitted(self) -> None:

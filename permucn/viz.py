@@ -12,7 +12,7 @@ def generate_visual_outputs(
     rows: Sequence[Dict[str, object]],
     out_prefix: str | Path,
     qvalue_threshold: float = 0.05,
-    pvalue_top_n: int = 0,
+    pvalue_top_n: int = 100,
     hist_bins: int = 20,
     make_plots: bool = False,
 ) -> Dict[str, object]:

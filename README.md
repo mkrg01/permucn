@@ -35,10 +35,7 @@ Run with bundled toy data (fast check):
 permucn \
   --cafe-dir test_data/toy_example/cafe_output \
   --trait-tsv test_data/toy_example/species_trait.tsv \
-  --mode binary \
   --no-include-trait-loss \
-  --asr-posterior-hi 0.6 \
-  --asr-posterior-lo 0.4 \
   --n-perm-initial 20 \
   --n-perm-refine 50 \
   --seed 7 \
@@ -51,14 +48,8 @@ Run with the larger polar fish dataset:
 permucn \
   --cafe-dir test_data/polar_fish/cafe_output \
   --trait-tsv test_data/polar_fish/species_trait.tsv \
-  --mode binary \
-  --direction gain \
   --jobs 4 \
   --n-perm-initial 1000 \
-  --n-perm-refine 1000000 \
-  --refine-p-threshold 0.01 \
-  --qvalue-threshold 0.05 \
-  --pvalue-top-n 100 \
   --perm-cache results/perm_cache.json.gz \
   --out-prefix results/polar_fish
 ```
@@ -99,7 +90,6 @@ Default binary mode:
 permucn \
   --cafe-dir <cafe_output_dir> \
   --trait-tsv <trait.tsv> \
-  --mode binary \
   --out-prefix results/binary_run
 ```
 
@@ -109,9 +99,7 @@ Binary mode using only CAFE-significant branch events:
 permucn \
   --cafe-dir <cafe_output_dir> \
   --trait-tsv <trait.tsv> \
-  --mode binary \
   --cafe-significant-only \
-  --cafe-alpha 0.05 \
   --out-prefix results/binary_sig
 ```
 
@@ -122,7 +110,6 @@ permucn \
   --cafe-dir <cafe_output_dir> \
   --trait-tsv <trait.tsv> \
   --mode rate \
-  --direction gain \
   --out-prefix results/rate_run
 ```
 
@@ -138,7 +125,7 @@ Always written:
 - `<out-prefix>.family_results.tsv` (main per-family results)
 - `<out-prefix>.run_metadata.json` (run settings and metadata)
 - `<out-prefix>.top_hits.tsv` (families passing `q_bh <= --qvalue-threshold`)
-- `<out-prefix>.top_pvalues.tsv` (top `--pvalue-top-n` families by smallest `p_empirical`, only when `--pvalue-top-n > 0`)
+- `<out-prefix>.top_pvalues.tsv` (top `--pvalue-top-n` families by smallest `p_empirical`; default top 100, set `0` to disable)
 
 Written when at least one tested family has p-values:
 
