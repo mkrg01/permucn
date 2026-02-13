@@ -52,12 +52,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--cafe-dir",
-        default="gfe_data/genome_evolution/cafe/cafe_output",
+        default=None,
         help="Directory containing CAFE output files",
     )
     parser.add_argument(
         "--trait-tsv",
-        default="gfe_data/species_trait/species_trait.tsv",
+        default=None,
         help="Trait TSV path",
     )
     parser.add_argument(
@@ -65,7 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Trait column name in trait TSV (optional; auto-detected if omitted)",
     )
-    parser.add_argument("--mode", choices=["binary", "rate"], required=True)
+    parser.add_argument("--mode", choices=["binary", "rate"], default="binary")
     parser.add_argument("--direction", choices=["gain", "loss"], default="gain")
 
     incl = parser.add_mutually_exclusive_group()
@@ -80,8 +80,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cafe-significant-only", action="store_true")
     parser.add_argument("--cafe-alpha", type=float, default=0.05)
 
-    parser.add_argument("--n-perm-initial", type=int, required=True)
-    parser.add_argument("--n-perm-refine", type=int, required=True)
+    parser.add_argument("--n-perm-initial", type=int, default=1000)
+    parser.add_argument("--n-perm-refine", type=int, default=1000000)
     parser.add_argument("--refine-p-threshold", type=float, default=0.01)
 
     parser.add_argument(
@@ -109,10 +109,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Generate QQ/histogram PNG outputs (requires matplotlib)",
     )
     parser.add_argument(
-        "--top-n",
-        type=int,
-        default=50,
-        help="Top N families to write in <out-prefix>.top_hits.tsv",
+        "--qvalue-threshold",
+        type=float,
+        default=0.05,
+        help="Write families with q_bh <= threshold to <out-prefix>.top_hits.tsv",
     )
     parser.add_argument(
         "--hist-bins",
@@ -134,6 +134,11 @@ def _required_paths(cafe_dir: Path) -> Dict[str, Path]:
 
 
 def _validate_args(args: argparse.Namespace) -> None:
+    if hasattr(args, "cafe_dir") and not args.cafe_dir:
+        raise ValueError("--cafe-dir is required")
+    if hasattr(args, "trait_tsv") and not args.trait_tsv:
+        raise ValueError("--trait-tsv is required")
+
     if args.asr_posterior_lo < 0 or args.asr_posterior_hi > 1 or args.asr_posterior_lo >= args.asr_posterior_hi:
         raise ValueError("Invalid ASR posterior thresholds: require 0 <= lo < hi <= 1")
 
@@ -148,11 +153,11 @@ def _validate_args(args: argparse.Namespace) -> None:
     if args.cafe_alpha <= 0 or args.cafe_alpha >= 1:
         raise ValueError("--cafe-alpha must be in (0, 1)")
 
-    top_n = getattr(args, "top_n", 50)
+    qvalue_threshold = getattr(args, "qvalue_threshold", 0.05)
     hist_bins = getattr(args, "hist_bins", 20)
     jobs = getattr(args, "jobs", 1)
-    if top_n < 0:
-        raise ValueError("--top-n must be >= 0")
+    if qvalue_threshold < 0 or qvalue_threshold > 1:
+        raise ValueError("--qvalue-threshold must be in [0, 1]")
     if hist_bins <= 0:
         raise ValueError("--hist-bins must be > 0")
     if jobs < 0:
@@ -608,7 +613,7 @@ def run(args: argparse.Namespace) -> int:
     viz_outputs = generate_visual_outputs(
         rows=rows,
         out_prefix=out_prefix,
-        top_n=args.top_n,
+        qvalue_threshold=args.qvalue_threshold,
         hist_bins=args.hist_bins,
         make_plots=args.make_plots,
     )
@@ -638,6 +643,7 @@ def run(args: argparse.Namespace) -> int:
             "n_perm_initial": args.n_perm_initial,
             "n_perm_refine": args.n_perm_refine,
             "refine_p_threshold": args.refine_p_threshold,
+            "qvalue_threshold": args.qvalue_threshold,
             "clade_bin_scheme": args.clade_bin_scheme,
             "seed": args.seed,
             "jobs_requested": args.jobs,

@@ -11,7 +11,7 @@ from typing import Dict, Iterable, List, Sequence, Tuple
 def generate_visual_outputs(
     rows: Sequence[Dict[str, object]],
     out_prefix: str | Path,
-    top_n: int = 50,
+    qvalue_threshold: float = 0.05,
     hist_bins: int = 20,
     make_plots: bool = False,
 ) -> Dict[str, object]:
@@ -30,7 +30,7 @@ def generate_visual_outputs(
     }
 
     top_path = Path(str(out_prefix) + ".top_hits.tsv")
-    _write_top_hits(valid, top_path, top_n)
+    _write_top_hits(valid, top_path, qvalue_threshold)
     outputs["top_hits_tsv"] = str(top_path)
 
     if not pvals:
@@ -62,7 +62,7 @@ def generate_visual_outputs(
     return outputs
 
 
-def _write_top_hits(rows: Sequence[Dict[str, object]], path: Path, top_n: int) -> None:
+def _write_top_hits(rows: Sequence[Dict[str, object]], path: Path, qvalue_threshold: float) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     ranked = sorted(
         rows,
@@ -73,7 +73,8 @@ def _write_top_hits(rows: Sequence[Dict[str, object]], path: Path, top_n: int) -
         ),
     )
 
-    keep = ranked[: max(0, int(top_n))]
+    threshold = float(qvalue_threshold)
+    keep = [row for row in ranked if row.get("q_bh") is not None and float(row["q_bh"]) <= threshold]
     fields = ["rank", "family_id", "q_bh", "p_empirical", "stat_obs", "mode", "direction", "status"]
 
     with path.open("w", encoding="utf-8", newline="") as handle:
