@@ -127,14 +127,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--qvalue-threshold",
         type=float,
         default=0.05,
-        help="Write families with q <= threshold to <out-prefix>.top_hits.tsv",
+        help="Write families with q_bh (or p_bonf_tarone in fisher-tarone mode) <= threshold to <out-prefix>.top_hits.tsv",
     )
     parser.add_argument(
         "--pvalue-top-n",
         type=int,
         default=100,
         help=(
-            "Write top N families ranked by smallest p_empirical to "
+            "Write top N families ranked by smallest p_empirical (or p_fisher in fisher-tarone mode) to "
             "<out-prefix>.top_pvalues.tsv (default: 100; 0 disables)"
         ),
     )
@@ -250,7 +250,7 @@ def _family_result_base(
         "n_fg_10": n_fg_10,
         "stat_obs": None,
         "p_empirical": None,
-        "q": None,
+        "q_bh": None,
         "n_perm_used": 0,
         "refined": False,
         "status": "not_tested",
@@ -361,7 +361,7 @@ def _compute_family_binary_fisher(
 
     out: Dict[str, object] = {
         "stat_obs": fg_concordant_count,
-        "p_empirical": p_fisher,
+        "p_empirical": None,
         "p_fisher": p_fisher,
         "p_min_attainable": p_min_attainable,
         "tarone_testable": None,
@@ -872,11 +872,11 @@ def run(args: argparse.Namespace) -> int:
 
     _log_progress("[7/8] Applying multiple-testing correction and writing result files")
     if fisher_tarone_mode:
-        qvals = [row["p_bonf_tarone"] if row["status"] == "ok" else None for row in rows]
+        qvals = [None] * len(rows)
     else:
         qvals = bh_adjust_with_none(pvalues)
     for row, q in zip(rows, qvals):
-        row["q"] = q
+        row["q_bh"] = q
 
     out_prefix = Path(args.out_prefix)
     out_tsv = Path(str(out_prefix) + ".family_results.tsv")

@@ -30,12 +30,8 @@ One row per family.
 - `include_trait_loss`: whether `1->0` foreground was included
 - `n_fg_01`, `n_fg_10`: number of inferred foreground branches
 - `stat_obs`: observed test statistic
-- `p_empirical`: primary p-value used for ranking
-  - permutation mode: one-sided empirical p-value
-  - fisher-tarone mode: one-sided Fisher exact p-value
-- `q`: adjusted p-value used for top-hit filtering
-  - permutation mode: BH-adjusted q-value
-  - fisher-tarone mode: Tarone-Bonferroni adjusted p-value (blank for untestable families)
+- `p_empirical`: one-sided empirical p-value (permutation mode; blank in fisher-tarone mode)
+- `q_bh`: BH-adjusted q-value (permutation mode; blank in fisher-tarone mode)
 - `n_perm_used`: permutation count used for the final p-value
 - `refined`: whether this family was recomputed in refinement stage
 - `status`: `ok`, `untestable_tarone`, or `no_valid_foreground`
@@ -68,24 +64,18 @@ Interpretation:
 
 ## `top_hits.tsv`
 
-Contains families with `q <= --qvalue-threshold`.
+Contains families passing adjusted threshold.
 
 Ranking order:
 
-1. smaller `q`
-2. smaller `p_empirical`
+1. smaller adjusted value
+2. smaller p-value
 3. larger `stat_obs`
 
-Columns:
+Columns by mode:
 
-- `rank`
-- `family_id`
-- `q`
-- `p_empirical`
-- `stat_obs`
-- `mode`
-- `direction`
-- `status`
+- permutation mode: `rank`, `family_id`, `q_bh`, `p_empirical`, `stat_obs`, `mode`, `direction`, `status`
+- fisher-tarone mode: `rank`, `family_id`, `p_bonf_tarone`, `p_fisher`, `stat_obs`, `mode`, `direction`, `status`
 
 ## `run_metadata.json`
 
@@ -113,7 +103,9 @@ Useful fields for reproducibility:
 
 `pvalue_hist.tsv`:
 
-- histogram bins (`bin_start`, `bin_end`, `count`) over empirical p-values
+- histogram bins (`bin_start`, `bin_end`, `count`) over primary p-values
+  - permutation mode: `p_empirical`
+  - fisher-tarone mode: `p_fisher`
 
 `qq.tsv`:
 

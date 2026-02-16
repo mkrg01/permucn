@@ -58,7 +58,8 @@ Try:
 
 ## Why are `*.pvalue_hist.tsv` and `*.qq.tsv` missing?
 
-These files are generated only when at least one tested family has `p_empirical`.
+These files are generated only when at least one tested family has a primary p-value
+(`p_empirical` in permutation mode, `p_fisher` in fisher-tarone mode).
 
 Check:
 
@@ -67,7 +68,10 @@ Check:
 
 ## `top_hits.tsv` is empty
 
-An empty `top_hits.tsv` usually means no families passed `q <= --qvalue-threshold`.
+An empty `top_hits.tsv` usually means no families passed the adjusted threshold:
+
+- permutation mode: `q_bh <= --qvalue-threshold`
+- fisher-tarone mode: `p_bonf_tarone <= --qvalue-threshold`
 
 Try:
 

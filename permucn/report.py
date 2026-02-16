@@ -15,7 +15,7 @@ def family_fieldnames(mode: str) -> List[str]:
         "n_fg_10",
         "stat_obs",
         "p_empirical",
-        "q",
+        "q_bh",
         "n_perm_used",
         "refined",
         "status",

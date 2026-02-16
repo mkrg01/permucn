@@ -175,8 +175,12 @@ class TestCliIntegration(unittest.TestCase):
 
         out_tsv = Path(str(out_prefix) + ".family_results.tsv")
         out_json = Path(str(out_prefix) + ".run_metadata.json")
+        top_hits = Path(str(out_prefix) + ".top_hits.tsv")
+        top_pvalues = Path(str(out_prefix) + ".top_pvalues.tsv")
         self.assertTrue(out_tsv.exists())
         self.assertTrue(out_json.exists())
+        self.assertTrue(top_hits.exists())
+        self.assertTrue(top_pvalues.exists())
 
         lines = out_tsv.read_text(encoding="utf-8").splitlines()
         self.assertGreaterEqual(len(lines), 2)
@@ -187,17 +191,33 @@ class TestCliIntegration(unittest.TestCase):
         self.assertIn("p_bonf_tarone", header)
         self.assertIn("reject_tarone", header)
 
-        q_idx = header.index("q")
+        p_emp_idx = header.index("p_empirical")
+        q_idx = header.index("q_bh")
         status_idx = header.index("status")
+        p_fisher_idx = header.index("p_fisher")
         bonf_idx = header.index("p_bonf_tarone")
         for row in lines[1:]:
             cols = row.split("\t")
+            self.assertEqual(cols[p_emp_idx], "")
+            self.assertEqual(cols[q_idx], "")
+            self.assertNotEqual(cols[p_fisher_idx], "")
             self.assertIn(cols[status_idx], {"ok", "untestable_tarone"})
             if cols[status_idx] == "ok":
-                self.assertNotEqual(cols[q_idx], "")
-                self.assertEqual(cols[q_idx], cols[bonf_idx])
+                self.assertNotEqual(cols[bonf_idx], "")
             else:
-                self.assertEqual(cols[q_idx], "")
+                self.assertEqual(cols[bonf_idx], "")
+
+        top_hits_header = top_hits.read_text(encoding="utf-8").splitlines()[0].split("\t")
+        self.assertIn("p_fisher", top_hits_header)
+        self.assertIn("p_bonf_tarone", top_hits_header)
+        self.assertNotIn("p_empirical", top_hits_header)
+        self.assertNotIn("q_bh", top_hits_header)
+
+        top_pvalues_header = top_pvalues.read_text(encoding="utf-8").splitlines()[0].split("\t")
+        self.assertIn("p_fisher", top_pvalues_header)
+        self.assertIn("p_bonf_tarone", top_pvalues_header)
+        self.assertNotIn("p_empirical", top_pvalues_header)
+        self.assertNotIn("q_bh", top_pvalues_header)
 
         meta = json.loads(out_json.read_text(encoding="utf-8"))
         self.assertEqual(meta["parameters"]["binary_test"], "fisher-tarone")

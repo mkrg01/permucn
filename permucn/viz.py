@@ -17,9 +17,12 @@ def generate_visual_outputs(
     make_plots: bool = False,
 ) -> Dict[str, object]:
     out_prefix = Path(out_prefix)
+    fisher_tarone_mode = _is_fisher_tarone_mode(rows)
+    pvalue_key = "p_fisher" if fisher_tarone_mode else "p_empirical"
+    adjusted_key = "p_bonf_tarone" if fisher_tarone_mode else "q_bh"
 
-    valid = [r for r in rows if r.get("status") == "ok" and r.get("p_empirical") is not None]
-    pvals = [float(r["p_empirical"]) for r in valid]
+    valid = [r for r in rows if r.get("status") == "ok" and r.get(pvalue_key) is not None]
+    pvals = [float(r[pvalue_key]) for r in valid]
 
     outputs: Dict[str, object] = {
         "top_hits_tsv": None,
@@ -32,12 +35,24 @@ def generate_visual_outputs(
     }
 
     top_path = Path(str(out_prefix) + ".top_hits.tsv")
-    _write_top_hits(valid, top_path, qvalue_threshold)
+    _write_top_hits(
+        valid,
+        top_path,
+        qvalue_threshold,
+        pvalue_key=pvalue_key,
+        adjusted_key=adjusted_key,
+    )
     outputs["top_hits_tsv"] = str(top_path)
 
     if int(pvalue_top_n) > 0:
         top_p_path = Path(str(out_prefix) + ".top_pvalues.tsv")
-        _write_top_pvalues(valid, top_p_path, pvalue_top_n)
+        _write_top_pvalues(
+            valid,
+            top_p_path,
+            pvalue_top_n,
+            pvalue_key=pvalue_key,
+            adjusted_key=adjusted_key,
+        )
         outputs["top_pvalues_tsv"] = str(top_p_path)
 
     if not pvals:
@@ -69,20 +84,27 @@ def generate_visual_outputs(
     return outputs
 
 
-def _write_top_hits(rows: Sequence[Dict[str, object]], path: Path, qvalue_threshold: float) -> None:
+def _write_top_hits(
+    rows: Sequence[Dict[str, object]],
+    path: Path,
+    qvalue_threshold: float,
+    *,
+    pvalue_key: str,
+    adjusted_key: str,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     ranked = sorted(
         rows,
         key=lambda r: (
-            _none_last(r.get("q")),
-            _none_last(r.get("p_empirical")),
+            _none_last(r.get(adjusted_key)),
+            _none_last(r.get(pvalue_key)),
             -float(r.get("stat_obs", 0.0) or 0.0),
         ),
     )
 
     threshold = float(qvalue_threshold)
-    keep = [row for row in ranked if row.get("q") is not None and float(row["q"]) <= threshold]
-    fields = ["rank", "family_id", "q", "p_empirical", "stat_obs", "mode", "direction", "status"]
+    keep = [row for row in ranked if row.get(adjusted_key) is not None and float(row[adjusted_key]) <= threshold]
+    fields = ["rank", "family_id", adjusted_key, pvalue_key, "stat_obs", "mode", "direction", "status"]
 
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
@@ -92,8 +114,8 @@ def _write_top_hits(rows: Sequence[Dict[str, object]], path: Path, qvalue_thresh
                 {
                     "rank": i,
                     "family_id": row.get("family_id"),
-                    "q": row.get("q"),
-                    "p_empirical": row.get("p_empirical"),
+                    adjusted_key: row.get(adjusted_key),
+                    pvalue_key: row.get(pvalue_key),
                     "stat_obs": row.get("stat_obs"),
                     "mode": row.get("mode"),
                     "direction": row.get("direction"),
@@ -119,19 +141,26 @@ def _histogram_rows(values: Sequence[float], bins: int) -> List[Dict[str, object
     return out
 
 
-def _write_top_pvalues(rows: Sequence[Dict[str, object]], path: Path, top_n: int) -> None:
+def _write_top_pvalues(
+    rows: Sequence[Dict[str, object]],
+    path: Path,
+    top_n: int,
+    *,
+    pvalue_key: str,
+    adjusted_key: str,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     ranked = sorted(
         rows,
         key=lambda r: (
-            _none_last(r.get("p_empirical")),
-            _none_last(r.get("q")),
+            _none_last(r.get(pvalue_key)),
+            _none_last(r.get(adjusted_key)),
             -float(r.get("stat_obs", 0.0) or 0.0),
         ),
     )
 
     keep = ranked[: max(0, int(top_n))]
-    fields = ["rank", "family_id", "p_empirical", "q", "stat_obs", "mode", "direction", "status"]
+    fields = ["rank", "family_id", pvalue_key, adjusted_key, "stat_obs", "mode", "direction", "status"]
 
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
@@ -141,8 +170,8 @@ def _write_top_pvalues(rows: Sequence[Dict[str, object]], path: Path, top_n: int
                 {
                     "rank": i,
                     "family_id": row.get("family_id"),
-                    "p_empirical": row.get("p_empirical"),
-                    "q": row.get("q"),
+                    pvalue_key: row.get(pvalue_key),
+                    adjusted_key: row.get(adjusted_key),
                     "stat_obs": row.get("stat_obs"),
                     "mode": row.get("mode"),
                     "direction": row.get("direction"),
@@ -188,7 +217,7 @@ def _maybe_plot_hist(values: Sequence[float], out_pdf: Path, bins: int) -> str |
     out_pdf.parent.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.hist(values, bins=max(1, int(bins)), range=(0, 1), color="#3A78C2", edgecolor="black")
-    ax.set_xlabel("Empirical p-value")
+    ax.set_xlabel("p-value")
     ax.set_ylabel("Count")
     ax.set_title("p-value histogram")
     fig.tight_layout()
@@ -228,3 +257,7 @@ def _none_last(v: object) -> float:
     if v is None:
         return float("inf")
     return float(v)
+
+
+def _is_fisher_tarone_mode(rows: Sequence[Dict[str, object]]) -> bool:
+    return any(row.get("p_fisher") is not None for row in rows)
