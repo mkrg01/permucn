@@ -49,6 +49,12 @@ permucn \
 - `results/toy_binary.family_results.tsv`
 - `results/toy_binary.run_metadata.json`
 - `results/toy_binary.top_hits.tsv`
+- `results/toy_binary.top_pvalues.tsv` (default: top 100 by p-value)
+
+If at least one tested family has p-values, these are also written:
+
+- `results/toy_binary.pvalue_hist.tsv`
+- `results/toy_binary.qq.tsv`
 
 For a larger sample dataset:
 
@@ -121,13 +127,16 @@ permucn --cafe-dir <cafe_output_dir> --trait-tsv <trait.tsv> --mode rate --out-p
 - `--seed`: reproducible permutations
 - `--jobs`: parallelism (`1` sequential, `0` auto CPU)
 - `--perm-cache`: reuse permutations across runs (`.json` / `.json.gz`)
+- `--pvalue-top-n`: size of `*.top_pvalues.tsv` (`0` disables)
 
 ## Documentation
 
 - [wiki/Home.md](wiki/Home.md)
+- [wiki/Getting-Started.md](wiki/Getting-Started.md)
 - [wiki/CLI-Reference.md](wiki/CLI-Reference.md)
 - [wiki/Input-Format.md](wiki/Input-Format.md)
 - [wiki/Output-Interpretation.md](wiki/Output-Interpretation.md)
+- [wiki/Algorithm-Notes.md](wiki/Algorithm-Notes.md)
 - [wiki/FAQ.md](wiki/FAQ.md)
 
 ## License

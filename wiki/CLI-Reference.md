@@ -63,6 +63,7 @@ Note: when `--binary-test fisher-tarone` is selected, permutation generation/ref
 | Option | Default | Description |
 | --- | --- | --- |
 | `--qvalue-threshold` | `0.05` | Threshold for including families in `*.top_hits.tsv`. |
+| `--pvalue-top-n` | `100` | Write top N families to `*.top_pvalues.tsv` ranked by primary p-value (`0` disables). |
 | `--hist-bins` | `20` | Number of bins for p-value histogram TSV/PDF. |
 | `--make-plots` | `False` | Generate histogram and QQ PDFs if `matplotlib` is available. |
 
@@ -74,6 +75,7 @@ Note: when `--binary-test fisher-tarone` is selected, permutation generation/ref
 - `0 < --refine-p-threshold < 1`
 - `0 < --cafe-alpha < 1`
 - `0 <= --qvalue-threshold <= 1`
+- `--pvalue-top-n >= 0`
 - `--hist-bins > 0`
 - `--jobs >= 0`
 - `--cafe-significant-only` is allowed only in `binary` mode
@@ -90,6 +92,16 @@ permucn \
   --trait-tsv <trait.tsv> \
   --mode binary \
   --out-prefix results/binary
+```
+
+Binary run with Fisher + Tarone:
+
+```bash
+permucn \
+  --cafe-dir <cafe_output_dir> \
+  --trait-tsv <trait.tsv> \
+  --binary-test fisher-tarone \
+  --out-prefix results/binary_fisher
 ```
 
 Rate run:

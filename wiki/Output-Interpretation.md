@@ -7,6 +7,7 @@ Given `--out-prefix results/run1`, `permucn` writes:
 - `results/run1.family_results.tsv`
 - `results/run1.run_metadata.json`
 - `results/run1.top_hits.tsv`
+- `results/run1.top_pvalues.tsv` (default: `--pvalue-top-n 100`; set `--pvalue-top-n 0` to disable)
 
 If at least one tested family has p-values:
 
@@ -77,6 +78,21 @@ Columns by mode:
 - permutation mode: `rank`, `family_id`, `q_bh`, `p_empirical`, `stat_obs`, `mode`, `direction`, `status`
 - fisher-tarone mode: `rank`, `family_id`, `p_bonf_tarone`, `p_fisher`, `stat_obs`, `mode`, `direction`, `status`
 
+## `top_pvalues.tsv`
+
+Contains the top N families ranked by primary p-value:
+
+1. smaller primary p-value
+2. smaller adjusted value
+3. larger `stat_obs`
+
+Primary/adjusted column pairs by mode:
+
+- permutation mode: `p_empirical`, `q_bh`
+- fisher-tarone mode: `p_fisher`, `p_bonf_tarone`
+
+Use `--pvalue-top-n` to change N (`0` disables this file).
+
 ## `run_metadata.json`
 
 Structured run metadata for auditability:
@@ -115,5 +131,5 @@ Useful fields for reproducibility:
 
 - If all families are `no_valid_foreground`, p-values are absent and histogram/QQ files are not written.
 - In fisher-tarone mode, families marked `untestable_tarone` are excluded from `n_tested` and p-value diagnostics.
-- `top_hits.tsv` is still written, but can contain only the header row.
+- `top_hits.tsv` and `top_pvalues.tsv` (if enabled) are still written, but can contain only the header row.
 - In metadata, check `results.n_tested` and `asr.n_fg_01` / `asr.n_fg_10`.
