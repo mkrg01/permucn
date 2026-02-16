@@ -57,7 +57,7 @@ Trait table requirements:
 - one binary trait column
 - species names must match tree tips exactly
 
-See [Input Format](Input-Format) for strict rules and examples.
+See [Input Format](Input-Format.md) for strict rules and examples.
 
 ## First Run (Binary Mode)
 
@@ -112,7 +112,7 @@ Diagnostics (at least one tested family has p-values):
 - `results/*.pvalue_hist.tsv`
 - `results/*.qq.tsv`
 
-See [Output Interpretation](Output-Interpretation) for details.
+See [Output Interpretation](Output-Interpretation.md) for details.
 
 ## Recommended Next Steps
 

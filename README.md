@@ -131,7 +131,6 @@ permucn --cafe-dir <cafe_output_dir> --trait-tsv <trait.tsv> --mode rate --out-p
 
 ## Documentation
 
-- [wiki/Home.md](wiki/Home.md)
 - [wiki/Getting-Started.md](wiki/Getting-Started.md)
 - [wiki/CLI-Reference.md](wiki/CLI-Reference.md)
 - [wiki/Input-Format.md](wiki/Input-Format.md)
