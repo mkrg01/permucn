@@ -13,21 +13,21 @@ Requirements: Python `>=3.12`
 pip install permucn
 ```
 
-Conda / Bioconda:
-
-```bash
-conda install -c conda-forge -c bioconda permucn
-```
-
 Optional plot support:
 
 ```bash
 pip install "permucn[plots]"
 ```
 
+Conda / Bioconda:
+
+```bash
+conda install -c conda-forge -c bioconda permucn
+```
+
 ## Quick Start
 
-1. Fetch sample data (works after `pip install`):
+1. Fetch sample data:
 
 ```bash
 permucn get-test-data --out-dir permucn_test_data
