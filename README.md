@@ -11,6 +11,12 @@ Requirements: Python `>=3.12`
 pip install permucn
 ```
 
+Conda / Bioconda:
+
+```bash
+conda install -c conda-forge -c bioconda permucn
+```
+
 Optional plot support:
 
 ```bash

@@ -13,6 +13,13 @@ pip install permucn
 permucn --help
 ```
 
+Conda / Bioconda:
+
+```bash
+conda install -c conda-forge -c bioconda permucn
+permucn --help
+```
+
 Optional plotting support:
 
 ```bash

@@ -1,0 +1,30 @@
+name: conda-recipe
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-recipe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          python-version: "3.12"
+          channels: conda-forge,bioconda
+          channel-priority: strict
+
+      - name: Install conda-build
+        shell: bash -el {0}
+        run: |
+          conda install -n base -c conda-forge conda-build
+
+      - name: Build conda recipe
+        shell: bash -el {0}
+        run: |
+          PERMUCN_CONDA_LOCAL_SOURCE=1 conda build conda-recipe
