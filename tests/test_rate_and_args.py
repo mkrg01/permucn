@@ -56,6 +56,22 @@ class TestRateAndArgs(unittest.TestCase):
         with self.assertRaises(ValueError):
             _validate_args(args)
 
+    def test_rate_mode_rejects_fisher_tarone(self) -> None:
+        args = argparse.Namespace(
+            asr_posterior_lo=0.1,
+            asr_posterior_hi=0.9,
+            n_perm_initial=10,
+            n_perm_refine=20,
+            refine_p_threshold=0.01,
+            cafe_alpha=0.05,
+            jobs=1,
+            mode="rate",
+            binary_test="fisher-tarone",
+            cafe_significant_only=False,
+        )
+        with self.assertRaises(ValueError):
+            _validate_args(args)
+
 
 if __name__ == "__main__":
     unittest.main()

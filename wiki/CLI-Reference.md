@@ -35,6 +35,8 @@ permucn get-test-data [OPTIONS]
 | --- | --- | --- |
 | `--mode {binary,rate}` | `binary` | Statistic mode. |
 | `--direction {gain,loss}` | `gain` | Directional sign convention for statistics. |
+| `--binary-test {permutation,fisher-tarone}` | `permutation` | Binary mode test engine. `fisher-tarone` runs one-sided Fisher exact tests and Tarone screening. |
+| `--fwer-alpha` | `0.05` | Family-wise error rate used by Tarone-Bonferroni in `fisher-tarone` mode. |
 | `--include-trait-loss` / `--no-include-trait-loss` | `include` | Whether to include inferred `1->0` foreground transitions. |
 | `--asr-method {ml}` | `ml` | Trait ASR method. Current implementation supports ML only. |
 | `--asr-posterior-hi` | `0.6` | Posterior threshold for hard state `1`. |
@@ -53,6 +55,8 @@ permucn get-test-data [OPTIONS]
 | `--seed` | `None` | Random seed for reproducibility. |
 | `--jobs` | `1` | Worker count (`1` sequential, `0` auto CPU count). |
 | `--perm-cache` | `None` | Optional permutation cache path (`.json` / `.json.gz`). |
+
+Note: when `--binary-test fisher-tarone` is selected, permutation generation/refinement and permutation cache are not used.
 
 ## Output and Visualization
 
@@ -73,6 +77,8 @@ permucn get-test-data [OPTIONS]
 - `--hist-bins > 0`
 - `--jobs >= 0`
 - `--cafe-significant-only` is allowed only in `binary` mode
+- `0 < --fwer-alpha < 1`
+- `--binary-test fisher-tarone` is allowed only in `binary` mode
 
 ## Common Commands
 

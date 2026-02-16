@@ -30,17 +30,24 @@ One row per family.
 - `include_trait_loss`: whether `1->0` foreground was included
 - `n_fg_01`, `n_fg_10`: number of inferred foreground branches
 - `stat_obs`: observed test statistic
-- `p_empirical`: one-sided empirical p-value
-- `q_bh`: BH-adjusted q-value
+- `p_empirical`: primary p-value used for ranking
+  - permutation mode: one-sided empirical p-value
+  - fisher-tarone mode: one-sided Fisher exact p-value
+- `q_bh`: BH-adjusted q-value (blank in fisher-tarone mode)
 - `n_perm_used`: permutation count used for the final p-value
 - `refined`: whether this family was recomputed in refinement stage
-- `status`: `ok` or `no_valid_foreground`
+- `status`: `ok`, `untestable_tarone`, or `no_valid_foreground`
 
 ### Binary Mode Additions
 
 - `fg_concordant_count`, `fg_total`
 - `bg_concordant_count`, `bg_total`
 - `fg_concordance_rate`, `bg_concordance_rate`
+- `p_fisher`: one-sided Fisher exact p-value (set in fisher-tarone mode)
+- `p_min_attainable`: minimum attainable Fisher p-value for fixed margins
+- `tarone_testable`: whether the family is testable under Tarone threshold
+- `p_bonf_tarone`: Tarone-Bonferroni adjusted p-value (testable families only)
+- `reject_tarone`: whether Fisher p-value passes Tarone-Bonferroni threshold
 
 Interpretation:
 
@@ -89,6 +96,7 @@ Structured run metadata for auditability:
 - `tree`
 - `asr`
 - `permutation`
+- `tarone`
 - `results`
 
 Useful fields for reproducibility:
@@ -97,6 +105,7 @@ Useful fields for reproducibility:
 - `parameters.jobs_requested`, `parameters.jobs_effective`
 - `permutation.cache` section
 - `permutation.initial` / `permutation.refine` attempt statistics
+- `tarone.m_total`, `tarone.m_testable`, `tarone.bonferroni_denom`, `tarone.threshold`
 
 ## Diagnostic Tables
 
@@ -111,5 +120,6 @@ Useful fields for reproducibility:
 ## Interpreting Empty/Reduced Outputs
 
 - If all families are `no_valid_foreground`, p-values are absent and histogram/QQ files are not written.
+- In fisher-tarone mode, families marked `untestable_tarone` are excluded from `n_tested` and p-value diagnostics.
 - `top_hits.tsv` is still written, but can contain only the header row.
 - In metadata, check `results.n_tested` and `asr.n_fg_01` / `asr.n_fg_10`.

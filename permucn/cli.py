@@ -28,7 +28,7 @@ from .io import (
     write_json,
     write_tsv,
 )
-from .multiple_testing import bh_adjust_with_none
+from .multiple_testing import bh_adjust_with_none, bonferroni_adjust_selected, tarone_screen_min_pvalues
 from .permutation import PermutationCache, PermutationGenerator
 from .report import family_fieldnames
 from .stats_binary import (
@@ -38,6 +38,7 @@ from .stats_binary import (
     permutation_binary_stats,
     sign_masks,
 )
+from .stats_fisher import fisher_exact_one_sided_from_counts, fisher_min_attainable_pvalue
 from .stats_rate import build_rates, observed_rate_stat, permutation_rate_stats, rate_summary
 from .testdata import DEFAULT_TEST_DATA_REF, fetch_test_data
 from .trait_ml import run_trait_asr_ml
@@ -69,6 +70,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--mode", choices=["binary", "rate"], default="binary")
     parser.add_argument("--direction", choices=["gain", "loss"], default="gain")
+    parser.add_argument(
+        "--binary-test",
+        choices=["permutation", "fisher-tarone"],
+        default="permutation",
+        help="Binary mode test engine: permutation (default) or Fisher exact with Tarone screening",
+    )
+    parser.add_argument(
+        "--fwer-alpha",
+        type=float,
+        default=0.05,
+        help="Family-wise error rate alpha used by Tarone-Bonferroni in fisher-tarone mode",
+    )
 
     incl = parser.add_mutually_exclusive_group()
     incl.add_argument("--include-trait-loss", dest="include_trait_loss", action="store_true")
@@ -203,6 +216,8 @@ def _validate_args(args: argparse.Namespace) -> None:
     pvalue_top_n = getattr(args, "pvalue_top_n", 100)
     hist_bins = getattr(args, "hist_bins", 20)
     jobs = getattr(args, "jobs", 1)
+    fwer_alpha = getattr(args, "fwer_alpha", 0.05)
+    binary_test = getattr(args, "binary_test", "permutation")
     if qvalue_threshold < 0 or qvalue_threshold > 1:
         raise ValueError("--qvalue-threshold must be in [0, 1]")
     if pvalue_top_n < 0:
@@ -211,9 +226,13 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--hist-bins must be > 0")
     if jobs < 0:
         raise ValueError("--jobs must be >= 0")
+    if fwer_alpha <= 0 or fwer_alpha >= 1:
+        raise ValueError("--fwer-alpha must be in (0, 1)")
 
     if args.mode == "rate" and args.cafe_significant_only:
         raise ValueError("--cafe-significant-only is valid only in binary mode")
+    if args.mode == "rate" and binary_test != "permutation":
+        raise ValueError("--binary-test is valid only in binary mode")
 
 
 def _family_result_base(
@@ -235,6 +254,11 @@ def _family_result_base(
         "n_perm_used": 0,
         "refined": False,
         "status": "not_tested",
+        "p_fisher": None,
+        "p_min_attainable": None,
+        "tarone_testable": None,
+        "p_bonf_tarone": None,
+        "reject_tarone": None,
     }
 
 
@@ -289,6 +313,60 @@ def _compute_family_binary(
     out: Dict[str, object] = {
         "stat_obs": stat_obs,
         "p_empirical": p,
+        "p_fisher": None,
+        "p_min_attainable": None,
+        "tarone_testable": None,
+        "p_bonf_tarone": None,
+        "reject_tarone": None,
+    }
+    out.update(summary)
+    return out
+
+
+def _compute_family_binary_fisher(
+    deltas: List[int],
+    direction_sign: int,
+    fg_01_mask: int,
+    fg_10_mask: int,
+    all_mask: int,
+    cafe_sig_mask: int | None,
+) -> Dict[str, object]:
+    pos_mask, neg_mask = sign_masks(deltas)
+    summary = binary_summary(
+        pos_mask=pos_mask,
+        neg_mask=neg_mask,
+        fg_01_mask=fg_01_mask,
+        fg_10_mask=fg_10_mask,
+        direction_sign=direction_sign,
+        all_mask=all_mask,
+        sig_mask=cafe_sig_mask,
+    )
+
+    fg_concordant_count = int(summary["fg_concordant_count"])
+    fg_total = int(summary["fg_total"])
+    bg_concordant_count = int(summary["bg_concordant_count"])
+    bg_total = int(summary["bg_total"])
+
+    p_fisher = fisher_exact_one_sided_from_counts(
+        fg_concordant_count=fg_concordant_count,
+        fg_total=fg_total,
+        bg_concordant_count=bg_concordant_count,
+        bg_total=bg_total,
+    )
+    p_min_attainable = fisher_min_attainable_pvalue(
+        fg_total=fg_total,
+        bg_total=bg_total,
+        total_concordant=fg_concordant_count + bg_concordant_count,
+    )
+
+    out: Dict[str, object] = {
+        "stat_obs": fg_concordant_count,
+        "p_empirical": p_fisher,
+        "p_fisher": p_fisher,
+        "p_min_attainable": p_min_attainable,
+        "tarone_testable": None,
+        "p_bonf_tarone": None,
+        "reject_tarone": None,
     }
     out.update(summary)
     return out
@@ -350,8 +428,9 @@ def _effective_jobs(raw_jobs: int) -> int:
 def _build_worker_context(
     *,
     mode: str,
+    binary_test: str,
     family_values: List[List[int]],
-    perm: PermutationCache,
+    perm: PermutationCache | None,
     direction_sign: int,
     fg_01_mask: int,
     fg_10_mask: int,
@@ -361,6 +440,7 @@ def _build_worker_context(
 ) -> Dict[str, object]:
     return {
         "mode": mode,
+        "binary_test": binary_test,
         "family_values": family_values,
         "perm": perm,
         "direction_sign": direction_sign,
@@ -379,8 +459,8 @@ def _init_worker(context: Dict[str, object]) -> None:
 
 def _evaluate_family_with_context(index: int, context: Dict[str, object]) -> tuple[int, Dict[str, object]]:
     mode = str(context["mode"])
+    binary_test = str(context.get("binary_test", "permutation"))
     family_values = context["family_values"]
-    perm = context["perm"]
     direction_sign = int(context["direction_sign"])
     fg_01_mask = int(context["fg_01_mask"])
     fg_10_mask = int(context["fg_10_mask"])
@@ -394,16 +474,32 @@ def _evaluate_family_with_context(index: int, context: Dict[str, object]) -> tup
         cafe_sig_mask = cafe_sig_masks[index]
 
     if mode == "binary":
-        out = _compute_family_binary(
-            deltas=deltas,
-            perm=perm,
-            direction_sign=direction_sign,
-            fg_01_mask=fg_01_mask,
-            fg_10_mask=fg_10_mask,
-            all_mask=all_mask,
-            cafe_sig_mask=cafe_sig_mask,
-        )
+        if binary_test == "fisher-tarone":
+            out = _compute_family_binary_fisher(
+                deltas=deltas,
+                direction_sign=direction_sign,
+                fg_01_mask=fg_01_mask,
+                fg_10_mask=fg_10_mask,
+                all_mask=all_mask,
+                cafe_sig_mask=cafe_sig_mask,
+            )
+        else:
+            perm = context["perm"]
+            if perm is None:
+                raise RuntimeError("Missing permutation cache for binary permutation test")
+            out = _compute_family_binary(
+                deltas=deltas,
+                perm=perm,
+                direction_sign=direction_sign,
+                fg_01_mask=fg_01_mask,
+                fg_10_mask=fg_10_mask,
+                all_mask=all_mask,
+                cafe_sig_mask=cafe_sig_mask,
+            )
     else:
+        perm = context["perm"]
+        if perm is None:
+            raise RuntimeError("Missing permutation cache for rate-mode test")
         branch_lengths = context["branch_lengths"]
         if branch_lengths is None:
             raise RuntimeError("Missing branch lengths in rate-mode worker context")
@@ -478,6 +574,8 @@ def run(args: argparse.Namespace) -> int:
     cafe_dir = Path(args.cafe_dir)
     trait_tsv = Path(args.trait_tsv)
     jobs = _effective_jobs(getattr(args, "jobs", 1))
+    binary_test = args.binary_test if args.mode == "binary" else "permutation"
+    fisher_tarone_mode = args.mode == "binary" and binary_test == "fisher-tarone"
 
     paths = _required_paths(cafe_dir)
     for key in ["change", "asr_tree"]:
@@ -539,56 +637,61 @@ def run(args: argparse.Namespace) -> int:
         f"[2/8] Foreground branches detected: 0->1={n_fg_01}, 1->0={n_fg_10}, total={fg_total}"
     )
 
-    _log_progress("[3/8] Preparing permutation cache and initial permutations")
-    cache_spec = make_cache_spec(
-        tree=tree,
-        include_trait_loss=args.include_trait_loss,
-        fg_01_mask=fg_01_mask,
-        fg_10_mask=fg_10_mask,
-    )
     cache_bundle = None
     cache_loaded = False
     initial_source = "generated"
     refine_source = "not_used"
     perm_initial = None
-    if args.perm_cache:
-        cache_path = Path(args.perm_cache)
-        if cache_path.exists():
-            loaded = load_cache_bundle(cache_path)
-            if is_bundle_compatible(loaded, cache_spec):
-                cache_bundle = loaded
-                cache_loaded = True
+    if fisher_tarone_mode:
+        initial_source = "not_used_fisher_tarone"
+        refine_source = "not_used_fisher_tarone"
+        _log_progress("[3/8] Skipping permutation setup for binary-test=fisher-tarone")
+    else:
+        _log_progress("[3/8] Preparing permutation cache and initial permutations")
+        cache_spec = make_cache_spec(
+            tree=tree,
+            include_trait_loss=args.include_trait_loss,
+            fg_01_mask=fg_01_mask,
+            fg_10_mask=fg_10_mask,
+        )
+        if args.perm_cache:
+            cache_path = Path(args.perm_cache)
+            if cache_path.exists():
+                loaded = load_cache_bundle(cache_path)
+                if is_bundle_compatible(loaded, cache_spec):
+                    cache_bundle = loaded
+                    cache_loaded = True
+                else:
+                    cache_bundle = empty_bundle(cache_spec)
             else:
                 cache_bundle = empty_bundle(cache_spec)
-        else:
-            cache_bundle = empty_bundle(cache_spec)
 
-    if fg_total == 0:
-        initial_source = "skipped_no_foreground"
-        refine_source = "skipped_no_foreground"
-        _log_progress("[3/8] Skipping permutation generation because no foreground branches were found")
-    else:
-        # Initial permutations.
-        perm_seed = args.seed
-        if cache_bundle is not None:
-            perm_initial = get_stage_cache(cache_bundle, "initial", args.n_perm_initial)
-            if perm_initial is not None:
-                initial_source = "cache"
-        if perm_initial is None:
-            _log_progress(f"[3/8] Generating initial permutations (n={args.n_perm_initial}, jobs={jobs})")
-            perm_gen = PermutationGenerator(
-                tree=tree,
-                obs_mask_01=fg_01_mask,
-                obs_mask_10=fg_10_mask,
-                include_trait_loss=args.include_trait_loss,
-                seed=perm_seed,
-            )
-            perm_initial = perm_gen.generate(args.n_perm_initial, jobs=jobs)
-            initial_source = "generated"
-            if cache_bundle is not None:
-                put_stage_cache(cache_bundle, "initial", perm_initial)
+        if fg_total == 0:
+            initial_source = "skipped_no_foreground"
+            refine_source = "skipped_no_foreground"
+            _log_progress("[3/8] Skipping permutation generation because no foreground branches were found")
         else:
-            _log_progress(f"[3/8] Reusing initial permutations from cache (n={args.n_perm_initial})")
+            # Initial permutations.
+            perm_seed = args.seed
+            if cache_bundle is not None:
+                perm_initial = get_stage_cache(cache_bundle, "initial", args.n_perm_initial)
+                if perm_initial is not None:
+                    initial_source = "cache"
+            if perm_initial is None:
+                _log_progress(f"[3/8] Generating initial permutations (n={args.n_perm_initial}, jobs={jobs})")
+                perm_gen = PermutationGenerator(
+                    tree=tree,
+                    obs_mask_01=fg_01_mask,
+                    obs_mask_10=fg_10_mask,
+                    include_trait_loss=args.include_trait_loss,
+                    seed=perm_seed,
+                )
+                perm_initial = perm_gen.generate(args.n_perm_initial, jobs=jobs)
+                initial_source = "generated"
+                if cache_bundle is not None:
+                    put_stage_cache(cache_bundle, "initial", perm_initial)
+            else:
+                _log_progress(f"[3/8] Reusing initial permutations from cache (n={args.n_perm_initial})")
 
     # Family delta matrix.
     _log_progress("[4/8] Loading family change matrix")
@@ -629,24 +732,30 @@ def run(args: argparse.Namespace) -> int:
     ]
     pvalues: List[Optional[float]] = [None] * len(rows)
     cafe_sig_masks: List[int] | None = None
+    tarone_info: Dict[str, object] | None = None
 
     if fg_total == 0:
         _log_progress("[5/8] Skipping family tests because no valid foreground branches were found")
         for row in rows:
             row["status"] = "no_valid_foreground"
     else:
-        _log_progress(
-            f"[5/8] Running initial family tests for {len(rows)} families (n_perm={args.n_perm_initial})"
-        )
-        if perm_initial is None:
-            raise RuntimeError("Initial permutations are unavailable")
         if args.cafe_significant_only:
             cafe_sig_masks = [build_significance_mask(prob_map.get(fam_id), args.cafe_alpha) for fam_id in change.family_ids]
 
+        if fisher_tarone_mode:
+            _log_progress(f"[5/8] Running Fisher exact tests for {len(rows)} families")
+        else:
+            _log_progress(
+                f"[5/8] Running initial family tests for {len(rows)} families (n_perm={args.n_perm_initial})"
+            )
+            if perm_initial is None:
+                raise RuntimeError("Initial permutations are unavailable")
+
         context_initial = _build_worker_context(
             mode=args.mode,
+            binary_test=binary_test,
             family_values=change.values,
-            perm=perm_initial,
+            perm=None if fisher_tarone_mode else perm_initial,
             direction_sign=direction_sign,
             fg_01_mask=fg_01_mask,
             fg_10_mask=fg_10_mask,
@@ -659,71 +768,113 @@ def run(args: argparse.Namespace) -> int:
 
         for i, row in enumerate(rows):
             row.update(initial_results[i])
-            row["n_perm_used"] = args.n_perm_initial
+            row["n_perm_used"] = 0 if fisher_tarone_mode else args.n_perm_initial
             row["status"] = "ok"
             pvalues[i] = row["p_empirical"]
-        _log_progress("[5/8] Initial family tests completed")
+        if fisher_tarone_mode:
+            min_pvalues: List[Optional[float]] = [
+                float(row["p_min_attainable"]) if row["status"] == "ok" and row["p_min_attainable"] is not None else None
+                for row in rows
+            ]
+            tarone_info = tarone_screen_min_pvalues(min_pvalues, args.fwer_alpha)
+            testable_mask = tarone_info["testable_mask"]
+            fisher_pvalues: List[Optional[float]] = [
+                float(row["p_fisher"]) if row["status"] == "ok" and row["p_fisher"] is not None else None for row in rows
+            ]
+            p_bonf = bonferroni_adjust_selected(
+                pvalues=fisher_pvalues,
+                selected_mask=testable_mask,
+                denom=int(tarone_info["bonferroni_denom"]),
+            )
+            threshold = tarone_info["threshold"]
+            eps = 1e-15
+            for i, row in enumerate(rows):
+                if row["status"] != "ok":
+                    continue
+                is_testable = bool(testable_mask[i])
+                row["tarone_testable"] = is_testable
+                row["p_bonf_tarone"] = p_bonf[i] if is_testable else None
+                row["reject_tarone"] = bool(
+                    is_testable
+                    and threshold is not None
+                    and row["p_fisher"] is not None
+                    and float(row["p_fisher"]) <= float(threshold) + eps
+                )
+                if not is_testable:
+                    row["status"] = "untestable_tarone"
+                    pvalues[i] = None
+            _log_progress("[5/8] Fisher tests completed and Tarone screening applied")
+        else:
+            _log_progress("[5/8] Initial family tests completed")
 
     # Optional refinement stage.
-    refined_indices = [
-        i
-        for i, row in enumerate(rows)
-        if row["status"] == "ok"
-        and row["p_empirical"] is not None
-        and float(row["p_empirical"]) <= args.refine_p_threshold
-        and args.n_perm_refine > args.n_perm_initial
-    ]
-
+    refined_indices: List[int] = []
     perm_refine = None
-    if refined_indices:
-        _log_progress(
-            f"[6/8] Running refinement for {len(refined_indices)} families (n_perm={args.n_perm_refine})"
-        )
-        if cache_bundle is not None:
-            perm_refine = get_stage_cache(cache_bundle, "refine", args.n_perm_refine)
-            if perm_refine is not None:
-                refine_source = "cache"
-        if perm_refine is None:
-            _log_progress(f"[6/8] Generating refine permutations (n={args.n_perm_refine}, jobs={jobs})")
-            refine_seed = None if args.seed is None else args.seed + 7919
-            refine_gen = PermutationGenerator(
-                tree=tree,
-                obs_mask_01=fg_01_mask,
-                obs_mask_10=fg_10_mask,
-                include_trait_loss=args.include_trait_loss,
-                seed=refine_seed,
-            )
-            perm_refine = refine_gen.generate(args.n_perm_refine, jobs=jobs)
-            refine_source = "generated"
-            if cache_bundle is not None:
-                put_stage_cache(cache_bundle, "refine", perm_refine)
-        else:
-            _log_progress(f"[6/8] Reusing refine permutations from cache (n={args.n_perm_refine})")
-
-        context_refine = _build_worker_context(
-            mode=args.mode,
-            family_values=change.values,
-            perm=perm_refine,
-            direction_sign=direction_sign,
-            fg_01_mask=fg_01_mask,
-            fg_10_mask=fg_10_mask,
-            all_mask=tree.all_mask,
-            branch_lengths=branch_lengths if args.mode == "rate" else None,
-            cafe_sig_masks=cafe_sig_masks,
-        )
-        refined_results = _evaluate_families(indices=refined_indices, jobs=jobs, context=context_refine)
-
-        for i in refined_indices:
-            rows[i].update(refined_results[i])
-            rows[i]["n_perm_used"] = args.n_perm_refine
-            rows[i]["refined"] = True
-            pvalues[i] = rows[i]["p_empirical"]
-        _log_progress("[6/8] Refinement completed")
+    if fisher_tarone_mode:
+        _log_progress("[6/8] Refinement skipped (not applicable to fisher-tarone)")
     else:
-        _log_progress("[6/8] Refinement skipped (no families passed refine criteria)")
+        refined_indices = [
+            i
+            for i, row in enumerate(rows)
+            if row["status"] == "ok"
+            and row["p_empirical"] is not None
+            and float(row["p_empirical"]) <= args.refine_p_threshold
+            and args.n_perm_refine > args.n_perm_initial
+        ]
+
+        if refined_indices:
+            _log_progress(
+                f"[6/8] Running refinement for {len(refined_indices)} families (n_perm={args.n_perm_refine})"
+            )
+            if cache_bundle is not None:
+                perm_refine = get_stage_cache(cache_bundle, "refine", args.n_perm_refine)
+                if perm_refine is not None:
+                    refine_source = "cache"
+            if perm_refine is None:
+                _log_progress(f"[6/8] Generating refine permutations (n={args.n_perm_refine}, jobs={jobs})")
+                refine_seed = None if args.seed is None else args.seed + 7919
+                refine_gen = PermutationGenerator(
+                    tree=tree,
+                    obs_mask_01=fg_01_mask,
+                    obs_mask_10=fg_10_mask,
+                    include_trait_loss=args.include_trait_loss,
+                    seed=refine_seed,
+                )
+                perm_refine = refine_gen.generate(args.n_perm_refine, jobs=jobs)
+                refine_source = "generated"
+                if cache_bundle is not None:
+                    put_stage_cache(cache_bundle, "refine", perm_refine)
+            else:
+                _log_progress(f"[6/8] Reusing refine permutations from cache (n={args.n_perm_refine})")
+
+            context_refine = _build_worker_context(
+                mode=args.mode,
+                binary_test=binary_test,
+                family_values=change.values,
+                perm=perm_refine,
+                direction_sign=direction_sign,
+                fg_01_mask=fg_01_mask,
+                fg_10_mask=fg_10_mask,
+                all_mask=tree.all_mask,
+                branch_lengths=branch_lengths if args.mode == "rate" else None,
+                cafe_sig_masks=cafe_sig_masks,
+            )
+            refined_results = _evaluate_families(indices=refined_indices, jobs=jobs, context=context_refine)
+
+            for i in refined_indices:
+                rows[i].update(refined_results[i])
+                rows[i]["n_perm_used"] = args.n_perm_refine
+                rows[i]["refined"] = True
+                pvalues[i] = rows[i]["p_empirical"]
+            _log_progress("[6/8] Refinement completed")
+        else:
+            _log_progress("[6/8] Refinement skipped (no families passed refine criteria)")
 
     _log_progress("[7/8] Applying multiple-testing correction and writing result files")
-    qvals = bh_adjust_with_none(pvalues)
+    if fisher_tarone_mode:
+        qvals = [None] * len(rows)
+    else:
+        qvals = bh_adjust_with_none(pvalues)
     for row, q in zip(rows, qvals):
         row["q_bh"] = q
 
@@ -759,12 +910,14 @@ def run(args: argparse.Namespace) -> int:
         "parameters": {
             "mode": args.mode,
             "direction": args.direction,
+            "binary_test": binary_test,
             "include_trait_loss": args.include_trait_loss,
             "asr_method": args.asr_method,
             "asr_posterior_hi": args.asr_posterior_hi,
             "asr_posterior_lo": args.asr_posterior_lo,
             "cafe_significant_only": args.cafe_significant_only,
             "cafe_alpha": args.cafe_alpha,
+            "fwer_alpha": args.fwer_alpha,
             "n_perm_initial": args.n_perm_initial,
             "n_perm_refine": args.n_perm_refine,
             "refine_p_threshold": args.refine_p_threshold,
@@ -821,6 +974,14 @@ def run(args: argparse.Namespace) -> int:
                 "total_attempts": perm_refine.total_attempts if perm_refine else 0,
                 "total_restarts": perm_refine.total_restarts if perm_refine else 0,
             },
+        },
+        "tarone": {
+            "enabled": fisher_tarone_mode,
+            "m_total": int(tarone_info["m_total"]) if tarone_info is not None else 0,
+            "m_testable": int(tarone_info["m_testable"]) if tarone_info is not None else 0,
+            "bonferroni_denom": int(tarone_info["bonferroni_denom"]) if tarone_info is not None else 0,
+            "threshold": tarone_info["threshold"] if tarone_info is not None else None,
+            "n_untestable": sum(1 for r in rows if r["status"] == "untestable_tarone"),
         },
         "results": {
             "n_families": len(rows),

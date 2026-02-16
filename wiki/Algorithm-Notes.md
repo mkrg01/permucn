@@ -7,10 +7,11 @@
 1. Parse canonical tree from `Gamma_asr.tre`.
 2. Load and validate trait table.
 3. Infer ancestral trait states by ML (`Mk2`) and define foreground branches.
-4. Generate constrained branch permutations.
-5. Compute observed statistic and empirical p-value per family.
-6. Optionally refine low-p families with more permutations.
-7. Apply BH correction and write outputs.
+4. Run binary statistics by either:
+   - constrained permutations, or
+   - Fisher exact test + Tarone screening.
+5. Optionally refine low-p families with more permutations (permutation mode only).
+6. Apply multiple-testing correction and write outputs.
 
 ## Tree Canonicalization
 
@@ -59,6 +60,9 @@ Per family, create branch sign masks from copy-number deltas:
 - negative (`delta < 0`)
 
 Observed statistic is directional concordance count on foreground branches.
+
+### Permutation path (`--binary-test permutation`)
+
 Empirical p-value is one-sided:
 
 `p = (k + 1) / (n + 1)`
@@ -67,6 +71,16 @@ where:
 
 - `k` = number of permutation stats `>= observed`
 - `n` = number of permutations
+
+### Fisher + Tarone path (`--binary-test fisher-tarone`)
+
+- Build a 2x2 table from:
+  - foreground concordant / non-concordant
+  - background concordant / non-concordant
+- Compute one-sided Fisher exact p-value (foreground enrichment in selected direction).
+- Compute each family's minimum attainable p-value from fixed margins.
+- Apply Tarone screening to mark untestable families and derive a Tarone-Bonferroni threshold.
+- In this path, `q_bh` is left empty.
 
 ## Rate Mode
 
