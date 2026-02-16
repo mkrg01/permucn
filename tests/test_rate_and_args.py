@@ -1,7 +1,7 @@
 import argparse
 import unittest
 
-from permucn.cli import _validate_args
+from permucn.cli import _validate_args, build_parser, build_test_data_parser
 from permucn.stats_rate import build_rates
 
 
@@ -71,6 +71,20 @@ class TestRateAndArgs(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             _validate_args(args)
+
+    def test_main_help_shows_default_values(self) -> None:
+        help_text = build_parser().format_help()
+        self.assertIn("--fwer-alpha FWER_ALPHA", help_text)
+        self.assertIn("(default: 0.05)", help_text)
+
+    def test_fwer_alpha_default_is_0_05(self) -> None:
+        args = build_parser().parse_args([])
+        self.assertEqual(args.fwer_alpha, 0.05)
+
+    def test_get_test_data_help_shows_default_values(self) -> None:
+        help_text = build_test_data_parser().format_help()
+        self.assertIn("--dataset {toy_example,polar_fish,all}", help_text)
+        self.assertIn("(default: toy_example)", help_text)
 
 
 if __name__ == "__main__":

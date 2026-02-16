@@ -51,6 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="permucn",
         description="Permutation-based copy number / trait association testing",
         epilog="Sample data helper: permucn get-test-data --help",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     parser.add_argument(
@@ -74,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--binary-test",
         choices=["permutation", "fisher-tarone"],
         default="permutation",
-        help="Binary mode test engine: permutation (default) or Fisher exact with Tarone screening",
+        help="Binary mode test engine: permutation or Fisher exact with Tarone screening",
     )
     parser.add_argument(
         "--fwer-alpha",
@@ -135,7 +136,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=100,
         help=(
             "Write top N families ranked by smallest p_empirical (or p_fisher in fisher-tarone mode) to "
-            "<out-prefix>.top_pvalues.tsv (default: 100; 0 disables)"
+            "<out-prefix>.top_pvalues.tsv (0 disables)"
         ),
     )
     parser.add_argument(
@@ -152,6 +153,7 @@ def build_test_data_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="permucn get-test-data",
         description="Fetch sample test datasets for quick permucn runs",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--dataset",
