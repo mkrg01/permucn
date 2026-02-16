@@ -9,20 +9,14 @@
 ## Install
 
 ```bash
-pip install "permucn @ git+https://github.com/mkrg01/permucn.git"
-permucn --help
-```
-
-After publishing to PyPI:
-
-```bash
 pip install permucn
+permucn --help
 ```
 
 Optional plotting support:
 
 ```bash
-pip install "permucn[plots] @ git+https://github.com/mkrg01/permucn.git"
+pip install "permucn[plots]"
 ```
 
 Local development install:

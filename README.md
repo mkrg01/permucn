@@ -8,19 +8,13 @@ In binary mode, you can choose either permutation-based testing or Fisher's exac
 Requirements: Python `>=3.12`
 
 ```bash
-pip install "permucn @ git+https://github.com/mkrg01/permucn.git"
-```
-
-If published on PyPI:
-
-```bash
 pip install permucn
 ```
 
 Optional plot support:
 
 ```bash
-pip install "permucn[plots] @ git+https://github.com/mkrg01/permucn.git"
+pip install "permucn[plots]"
 ```
 
 ## Quick Start
