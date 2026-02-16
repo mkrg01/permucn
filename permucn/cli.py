@@ -69,36 +69,95 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Trait column name in trait TSV (optional; auto-detected if omitted)",
     )
-    parser.add_argument("--mode", choices=["binary", "rate"], default="binary")
-    parser.add_argument("--direction", choices=["gain", "loss"], default="gain")
+    parser.add_argument(
+        "--mode",
+        choices=["binary", "rate"],
+        default="binary",
+        help="Association model: binary trait-concordance test or rate-based test; omitted uses binary mode",
+    )
+    parser.add_argument(
+        "--direction",
+        choices=["gain", "loss"],
+        default="gain",
+        help="Copy-number change direction treated as foreground signal; omitted treats gains as foreground",
+    )
     parser.add_argument(
         "--binary-test",
         choices=["permutation", "fisher-tarone"],
         default="permutation",
-        help="Binary mode test engine: permutation or Fisher exact with Tarone screening",
+        help="Binary mode test engine: permutation or Fisher exact with Tarone screening; omitted uses permutation",
     )
     parser.add_argument(
         "--fwer-alpha",
         type=float,
         default=0.05,
-        help="Family-wise error rate alpha used by Tarone-Bonferroni in fisher-tarone mode",
+        help="Family-wise error rate alpha for Tarone-Bonferroni; ignored unless --binary-test fisher-tarone is used",
     )
 
     incl = parser.add_mutually_exclusive_group()
-    incl.add_argument("--include-trait-loss", dest="include_trait_loss", action="store_true")
-    incl.add_argument("--no-include-trait-loss", dest="include_trait_loss", action="store_false")
+    incl.add_argument(
+        "--include-trait-loss",
+        dest="include_trait_loss",
+        action="store_true",
+        help="Include trait 1->0 transitions as foreground branches (default behavior when neither trait-loss flag is set)",
+    )
+    incl.add_argument(
+        "--no-include-trait-loss",
+        dest="include_trait_loss",
+        action="store_false",
+        help="Disable trait-loss foreground branches and use only trait gains",
+    )
     parser.set_defaults(include_trait_loss=True)
 
-    parser.add_argument("--asr-method", choices=["ml"], default="ml")
-    parser.add_argument("--asr-posterior-hi", type=float, default=0.6)
-    parser.add_argument("--asr-posterior-lo", type=float, default=0.4)
+    parser.add_argument(
+        "--asr-method",
+        choices=["ml"],
+        default="ml",
+        help="Ancestral trait reconstruction method; omitted uses ml",
+    )
+    parser.add_argument(
+        "--asr-posterior-hi",
+        type=float,
+        default=0.6,
+        help="Posterior threshold to call an ancestral trait state as 1",
+    )
+    parser.add_argument(
+        "--asr-posterior-lo",
+        type=float,
+        default=0.4,
+        help="Posterior threshold to call an ancestral trait state as 0",
+    )
 
-    parser.add_argument("--cafe-significant-only", action="store_true")
-    parser.add_argument("--cafe-alpha", type=float, default=0.05)
+    parser.add_argument(
+        "--cafe-significant-only",
+        action="store_true",
+        help="Test only families marked significant in CAFE family results; omitted tests all families",
+    )
+    parser.add_argument(
+        "--cafe-alpha",
+        type=float,
+        default=0.05,
+        help="Significance alpha for --cafe-significant-only filtering; ignored unless that flag is set",
+    )
 
-    parser.add_argument("--n-perm-initial", type=int, default=1000)
-    parser.add_argument("--n-perm-refine", type=int, default=1000000)
-    parser.add_argument("--refine-p-threshold", type=float, default=0.01)
+    parser.add_argument(
+        "--n-perm-initial",
+        type=int,
+        default=1000,
+        help="Number of initial permutations run for all tested families",
+    )
+    parser.add_argument(
+        "--n-perm-refine",
+        type=int,
+        default=1000000,
+        help="Number of additional permutations for families selected for refinement",
+    )
+    parser.add_argument(
+        "--refine-p-threshold",
+        type=float,
+        default=0.01,
+        help="Refine families whose initial empirical p-value is <= this threshold",
+    )
 
     parser.add_argument(
         "--clade-bin-scheme",
@@ -106,23 +165,32 @@ def build_parser() -> argparse.ArgumentParser:
         default="log2",
         help="Clade-size binning scheme",
     )
-    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Random seed for reproducible permutation sampling; omitted uses non-deterministic randomness",
+    )
     parser.add_argument(
         "--jobs",
         type=int,
         default=1,
         help="Number of worker processes (1 = sequential, 0 = auto)",
     )
-    parser.add_argument("--out-prefix", default="permucn_results")
+    parser.add_argument(
+        "--out-prefix",
+        default="permucn_results",
+        help="Output prefix used for generated result files",
+    )
     parser.add_argument(
         "--perm-cache",
         default=None,
-        help="Optional JSON/JSON.GZ file to load/save permutation cache",
+        help="Optional JSON/JSON.GZ file to load/save permutation cache; omitted disables cache load/save",
     )
     parser.add_argument(
         "--make-plots",
         action="store_true",
-        help="Generate QQ/histogram PDF outputs (requires matplotlib)",
+        help="Generate QQ/histogram PDF outputs (requires matplotlib); omitted skips plot generation",
     )
     parser.add_argument(
         "--qvalue-threshold",
@@ -143,7 +211,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--hist-bins",
         type=int,
         default=20,
-        help="Number of bins for p-value histogram output",
+        help="Number of bins for p-value histogram output (used by --make-plots)",
     )
 
     return parser
@@ -170,17 +238,17 @@ def build_test_data_parser() -> argparse.ArgumentParser:
         "--source",
         choices=["auto", "local", "github"],
         default="auto",
-        help="Use local repository data or download from GitHub",
+        help="Use local repository data or download from GitHub; auto chooses local when available, otherwise GitHub",
     )
     parser.add_argument(
         "--ref",
         default=DEFAULT_TEST_DATA_REF,
-        help="Git ref used when downloading from GitHub (branch/tag/commit)",
+        help="Git ref used when downloading from GitHub (branch/tag/commit); ignored for local source",
     )
     parser.add_argument(
         "--force",
         action="store_true",
-        help="Overwrite existing dataset directories in --out-dir",
+        help="Overwrite existing dataset directories in --out-dir; omitted raises an error if targets already exist",
     )
     return parser
 

@@ -86,6 +86,28 @@ class TestRateAndArgs(unittest.TestCase):
         self.assertIn("--dataset {toy_example,polar_fish,all}", help_text)
         self.assertIn("(default: toy_example)", help_text)
 
+    def test_help_describes_default_behavior(self) -> None:
+        help_text = build_parser().format_help()
+        self.assertRegex(help_text, r"omitted\s+uses\s+binary\s+mode")
+        self.assertRegex(help_text, r"omitted\s+tests\s+all\s+families")
+        self.assertRegex(help_text, r"omitted\s+skips\s+plot\s+generation")
+
+    def test_get_test_data_help_describes_default_behavior(self) -> None:
+        help_text = build_test_data_parser().format_help()
+        self.assertRegex(help_text, r"auto\s+chooses\s+local\s+when\s+available,\s+otherwise\s+GitHub")
+        self.assertRegex(help_text, r"omitted\s+raises\s+an\s+error\s+if\s+targets\s+already\s+exist")
+
+    def test_main_parser_all_options_have_help_text(self) -> None:
+        parser = build_parser()
+        for action in parser._actions:
+            if action.dest == "help":
+                continue
+            if not action.option_strings:
+                continue
+            self.assertNotEqual(action.help, argparse.SUPPRESS, f"missing help: {action.option_strings}")
+            self.assertIsInstance(action.help, str, f"missing help: {action.option_strings}")
+            self.assertTrue(action.help.strip(), f"empty help: {action.option_strings}")
+
 
 if __name__ == "__main__":
     unittest.main()
