@@ -1,5 +1,7 @@
 # permucn
 
+[![PyPI](https://img.shields.io/pypi/v/permucn.svg)](https://pypi.org/project/permucn/) [![Python](https://img.shields.io/pypi/pyversions/permucn.svg)](https://pypi.org/project/permucn/) [![Tests](https://github.com/mkrg01/permucn/actions/workflows/tests.yml/badge.svg)](https://github.com/mkrg01/permucn/actions/workflows/tests.yml) [![Conda Recipe](https://github.com/mkrg01/permucn/actions/workflows/conda-recipe.yml/badge.svg)](https://github.com/mkrg01/permucn/actions/workflows/conda-recipe.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 `permucn` is a command-line tool for testing whether trait transitions (`0->1`, optionally `1->0`) are associated with gene-family copy-number evolution from CAFE outputs.
 In binary mode, you can choose either permutation-based testing or Fisher's exact test with Tarone screening.
 
