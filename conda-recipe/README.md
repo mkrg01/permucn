@@ -25,10 +25,10 @@ sha256sum dist/permucn-<VERSION>.tar.gz
 
 ## Local recipe check
 
-`meta.yaml` supports local source mode for validation:
+Run a local recipe build check:
 
 ```bash
-PERMUCN_CONDA_LOCAL_SOURCE=1 conda build conda-recipe
+conda build conda-recipe
 ```
 
 ## Submit to Bioconda

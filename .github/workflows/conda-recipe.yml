@@ -27,4 +27,4 @@ jobs:
       - name: Build conda recipe
         shell: bash -el {0}
         run: |
-          PERMUCN_CONDA_LOCAL_SOURCE=1 conda build conda-recipe
+          conda build conda-recipe
