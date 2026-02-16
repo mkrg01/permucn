@@ -28,7 +28,7 @@ pip install "permucn[plots] @ git+https://github.com/mkrg01/permucn.git"
 1. Fetch sample data (works after `pip install`):
 
 ```bash
-permucn get-test-data --dataset toy_example --out-dir permucn_test_data
+permucn get-test-data --out-dir permucn_test_data
 ```
 
 2. Run `permucn`:
@@ -106,9 +106,7 @@ Binary mode with Fisher + Tarone:
 permucn \
   --cafe-dir <cafe_output_dir> \
   --trait-tsv <trait.tsv> \
-  --mode binary \
   --binary-test fisher-tarone \
-  --fwer-alpha 0.05 \
   --out-prefix results/binary_fisher
 ```
 
