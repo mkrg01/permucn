@@ -124,12 +124,12 @@ permucn --cafe-dir <cafe_output_dir> --trait-tsv <trait.tsv> --mode rate --out-p
 
 ## Documentation
 
-- `wiki/Home.md`
-- `wiki/CLI-Reference.md`
-- `wiki/Input-Format.md`
-- `wiki/Output-Interpretation.md`
-- `wiki/FAQ.md`
+- [wiki/Home.md](wiki/Home.md)
+- [wiki/CLI-Reference.md](wiki/CLI-Reference.md)
+- [wiki/Input-Format.md](wiki/Input-Format.md)
+- [wiki/Output-Interpretation.md](wiki/Output-Interpretation.md)
+- [wiki/FAQ.md](wiki/FAQ.md)
 
 ## License
 
-MIT (`LICENSE`)
+MIT ([LICENSE](LICENSE))
