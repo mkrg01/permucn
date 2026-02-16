@@ -127,7 +127,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--qvalue-threshold",
         type=float,
         default=0.05,
-        help="Write families with q_bh <= threshold to <out-prefix>.top_hits.tsv",
+        help="Write families with q <= threshold to <out-prefix>.top_hits.tsv",
     )
     parser.add_argument(
         "--pvalue-top-n",
@@ -250,7 +250,7 @@ def _family_result_base(
         "n_fg_10": n_fg_10,
         "stat_obs": None,
         "p_empirical": None,
-        "q_bh": None,
+        "q": None,
         "n_perm_used": 0,
         "refined": False,
         "status": "not_tested",
@@ -872,11 +872,11 @@ def run(args: argparse.Namespace) -> int:
 
     _log_progress("[7/8] Applying multiple-testing correction and writing result files")
     if fisher_tarone_mode:
-        qvals = [None] * len(rows)
+        qvals = [row["p_bonf_tarone"] if row["status"] == "ok" else None for row in rows]
     else:
         qvals = bh_adjust_with_none(pvalues)
     for row, q in zip(rows, qvals):
-        row["q_bh"] = q
+        row["q"] = q
 
     out_prefix = Path(args.out_prefix)
     out_tsv = Path(str(out_prefix) + ".family_results.tsv")

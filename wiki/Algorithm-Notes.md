@@ -80,7 +80,7 @@ where:
 - Compute one-sided Fisher exact p-value (foreground enrichment in selected direction).
 - Compute each family's minimum attainable p-value from fixed margins.
 - Apply Tarone screening to mark untestable families and derive a Tarone-Bonferroni threshold.
-- In this path, `q_bh` is left empty.
+- In this path, `q` stores Tarone-Bonferroni adjusted p-values for testable families.
 
 ## Rate Mode
 
@@ -106,8 +106,9 @@ This concentrates compute on candidate families.
 
 ## Multiple Testing
 
-- BH correction is applied across tested families (`p_empirical` available).
-- families not tested keep `q_bh = None`.
+- Permutation path: BH correction is applied across tested families (`p_empirical` available), producing `q`.
+- Fisher + Tarone path: `q` is set to Tarone-Bonferroni adjusted p-values for testable families.
+- Families not tested (or untestable under Tarone screening) keep `q = None`.
 
 ## Parallelization and Determinism
 

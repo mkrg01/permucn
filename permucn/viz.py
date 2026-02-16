@@ -74,15 +74,15 @@ def _write_top_hits(rows: Sequence[Dict[str, object]], path: Path, qvalue_thresh
     ranked = sorted(
         rows,
         key=lambda r: (
-            _none_last(r.get("q_bh")),
+            _none_last(r.get("q")),
             _none_last(r.get("p_empirical")),
             -float(r.get("stat_obs", 0.0) or 0.0),
         ),
     )
 
     threshold = float(qvalue_threshold)
-    keep = [row for row in ranked if row.get("q_bh") is not None and float(row["q_bh"]) <= threshold]
-    fields = ["rank", "family_id", "q_bh", "p_empirical", "stat_obs", "mode", "direction", "status"]
+    keep = [row for row in ranked if row.get("q") is not None and float(row["q"]) <= threshold]
+    fields = ["rank", "family_id", "q", "p_empirical", "stat_obs", "mode", "direction", "status"]
 
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
@@ -92,7 +92,7 @@ def _write_top_hits(rows: Sequence[Dict[str, object]], path: Path, qvalue_thresh
                 {
                     "rank": i,
                     "family_id": row.get("family_id"),
-                    "q_bh": row.get("q_bh"),
+                    "q": row.get("q"),
                     "p_empirical": row.get("p_empirical"),
                     "stat_obs": row.get("stat_obs"),
                     "mode": row.get("mode"),
@@ -125,13 +125,13 @@ def _write_top_pvalues(rows: Sequence[Dict[str, object]], path: Path, top_n: int
         rows,
         key=lambda r: (
             _none_last(r.get("p_empirical")),
-            _none_last(r.get("q_bh")),
+            _none_last(r.get("q")),
             -float(r.get("stat_obs", 0.0) or 0.0),
         ),
     )
 
     keep = ranked[: max(0, int(top_n))]
-    fields = ["rank", "family_id", "p_empirical", "q_bh", "stat_obs", "mode", "direction", "status"]
+    fields = ["rank", "family_id", "p_empirical", "q", "stat_obs", "mode", "direction", "status"]
 
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
@@ -142,7 +142,7 @@ def _write_top_pvalues(rows: Sequence[Dict[str, object]], path: Path, top_n: int
                     "rank": i,
                     "family_id": row.get("family_id"),
                     "p_empirical": row.get("p_empirical"),
-                    "q_bh": row.get("q_bh"),
+                    "q": row.get("q"),
                     "stat_obs": row.get("stat_obs"),
                     "mode": row.get("mode"),
                     "direction": row.get("direction"),

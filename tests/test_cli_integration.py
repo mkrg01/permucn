@@ -164,7 +164,7 @@ class TestCliIntegration(unittest.TestCase):
                 str(trait_tsv),
                 "--no-include-trait-loss",
                 "--fwer-alpha",
-                "0.05",
+                "0.9",
                 "--seed",
                 "7",
                 "--out-prefix",
@@ -187,12 +187,17 @@ class TestCliIntegration(unittest.TestCase):
         self.assertIn("p_bonf_tarone", header)
         self.assertIn("reject_tarone", header)
 
-        q_idx = header.index("q_bh")
+        q_idx = header.index("q")
         status_idx = header.index("status")
+        bonf_idx = header.index("p_bonf_tarone")
         for row in lines[1:]:
             cols = row.split("\t")
-            self.assertEqual(cols[q_idx], "")
             self.assertIn(cols[status_idx], {"ok", "untestable_tarone"})
+            if cols[status_idx] == "ok":
+                self.assertNotEqual(cols[q_idx], "")
+                self.assertEqual(cols[q_idx], cols[bonf_idx])
+            else:
+                self.assertEqual(cols[q_idx], "")
 
         meta = json.loads(out_json.read_text(encoding="utf-8"))
         self.assertEqual(meta["parameters"]["binary_test"], "fisher-tarone")

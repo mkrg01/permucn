@@ -33,7 +33,9 @@ One row per family.
 - `p_empirical`: primary p-value used for ranking
   - permutation mode: one-sided empirical p-value
   - fisher-tarone mode: one-sided Fisher exact p-value
-- `q_bh`: BH-adjusted q-value (blank in fisher-tarone mode)
+- `q`: adjusted p-value used for top-hit filtering
+  - permutation mode: BH-adjusted q-value
+  - fisher-tarone mode: Tarone-Bonferroni adjusted p-value (blank for untestable families)
 - `n_perm_used`: permutation count used for the final p-value
 - `refined`: whether this family was recomputed in refinement stage
 - `status`: `ok`, `untestable_tarone`, or `no_valid_foreground`
@@ -66,11 +68,11 @@ Interpretation:
 
 ## `top_hits.tsv`
 
-Contains families with `q_bh <= --qvalue-threshold`.
+Contains families with `q <= --qvalue-threshold`.
 
 Ranking order:
 
-1. smaller `q_bh`
+1. smaller `q`
 2. smaller `p_empirical`
 3. larger `stat_obs`
 
@@ -78,7 +80,7 @@ Columns:
 
 - `rank`
 - `family_id`
-- `q_bh`
+- `q`
 - `p_empirical`
 - `stat_obs`
 - `mode`

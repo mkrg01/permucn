@@ -67,7 +67,7 @@ Check:
 
 ## `top_hits.tsv` is empty
 
-An empty `top_hits.tsv` usually means no families passed `q_bh <= --qvalue-threshold`.
+An empty `top_hits.tsv` usually means no families passed `q <= --qvalue-threshold`.
 
 Try:
 
