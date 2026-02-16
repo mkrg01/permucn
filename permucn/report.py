@@ -30,6 +30,11 @@ def family_fieldnames(mode: str) -> List[str]:
                 "bg_total",
                 "fg_concordance_rate",
                 "bg_concordance_rate",
+                "p_fisher",
+                "p_min_attainable",
+                "tarone_testable",
+                "p_bonf_tarone",
+                "reject_tarone",
             ]
         )
     elif mode == "rate":

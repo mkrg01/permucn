@@ -1,6 +1,7 @@
 # permucn
 
 `permucn` is a command-line tool for testing whether trait transitions (`0->1`, optionally `1->0`) are associated with gene-family copy-number evolution from CAFE outputs.
+In binary mode, you can choose either permutation-based testing or Fisher's exact test with Tarone screening.
 
 ## Install
 
@@ -97,6 +98,18 @@ Binary mode with CAFE-significant events only:
 
 ```bash
 permucn --cafe-dir <cafe_output_dir> --trait-tsv <trait.tsv> --cafe-significant-only --out-prefix results/binary_sig
+```
+
+Binary mode with Fisher + Tarone:
+
+```bash
+permucn \
+  --cafe-dir <cafe_output_dir> \
+  --trait-tsv <trait.tsv> \
+  --mode binary \
+  --binary-test fisher-tarone \
+  --fwer-alpha 0.05 \
+  --out-prefix results/binary_fisher
 ```
 
 Rate mode:

@@ -148,6 +148,58 @@ class TestCliIntegration(unittest.TestCase):
         self.assertIn("[permucn] [5/8]", logs)
         self.assertIn("[permucn] [8/8] Run complete; outputs were written successfully", logs)
 
+    def test_binary_fisher_tarone_run(self) -> None:
+        td, cafe_dir, trait_tsv = self._build_toy_inputs()
+        out_prefix = td / "out" / "binary_fisher_tarone"
+
+        rc = main(
+            [
+                "--mode",
+                "binary",
+                "--binary-test",
+                "fisher-tarone",
+                "--cafe-dir",
+                str(cafe_dir),
+                "--trait-tsv",
+                str(trait_tsv),
+                "--no-include-trait-loss",
+                "--fwer-alpha",
+                "0.05",
+                "--seed",
+                "7",
+                "--out-prefix",
+                str(out_prefix),
+            ]
+        )
+        self.assertEqual(rc, 0)
+
+        out_tsv = Path(str(out_prefix) + ".family_results.tsv")
+        out_json = Path(str(out_prefix) + ".run_metadata.json")
+        self.assertTrue(out_tsv.exists())
+        self.assertTrue(out_json.exists())
+
+        lines = out_tsv.read_text(encoding="utf-8").splitlines()
+        self.assertGreaterEqual(len(lines), 2)
+        header = lines[0].split("\t")
+        self.assertIn("p_fisher", header)
+        self.assertIn("p_min_attainable", header)
+        self.assertIn("tarone_testable", header)
+        self.assertIn("p_bonf_tarone", header)
+        self.assertIn("reject_tarone", header)
+
+        q_idx = header.index("q_bh")
+        status_idx = header.index("status")
+        for row in lines[1:]:
+            cols = row.split("\t")
+            self.assertEqual(cols[q_idx], "")
+            self.assertIn(cols[status_idx], {"ok", "untestable_tarone"})
+
+        meta = json.loads(out_json.read_text(encoding="utf-8"))
+        self.assertEqual(meta["parameters"]["binary_test"], "fisher-tarone")
+        self.assertTrue(meta["tarone"]["enabled"])
+        self.assertEqual(meta["results"]["n_refined"], 0)
+        self.assertEqual(meta["permutation"]["cache"]["initial_source"], "not_used_fisher_tarone")
+
     def test_rate_run_end_to_end(self) -> None:
         td, cafe_dir, trait_tsv = self._build_toy_inputs()
         out_prefix = td / "out" / "rate"
