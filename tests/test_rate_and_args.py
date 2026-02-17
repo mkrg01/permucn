@@ -17,7 +17,7 @@ class TestRateAndArgs(unittest.TestCase):
             n_perm_initial=10,
             n_perm_refine=20,
             refine_p_threshold=0.01,
-            cafe_alpha=0.05,
+            cafe_pvalue=0.05,
             jobs=1,
             mode="rate",
             cafe_significant_only=True,
@@ -32,7 +32,7 @@ class TestRateAndArgs(unittest.TestCase):
             n_perm_initial=10,
             n_perm_refine=20,
             refine_p_threshold=0.01,
-            cafe_alpha=0.05,
+            cafe_pvalue=0.05,
             jobs=-1,
             mode="binary",
             cafe_significant_only=False,
@@ -47,7 +47,7 @@ class TestRateAndArgs(unittest.TestCase):
             n_perm_initial=10,
             n_perm_refine=20,
             refine_p_threshold=0.01,
-            cafe_alpha=0.05,
+            cafe_pvalue=0.05,
             pvalue_top_n=-1,
             jobs=1,
             mode="binary",
@@ -63,7 +63,7 @@ class TestRateAndArgs(unittest.TestCase):
             n_perm_initial=10,
             n_perm_refine=20,
             refine_p_threshold=0.01,
-            cafe_alpha=0.05,
+            cafe_pvalue=0.05,
             jobs=1,
             mode="rate",
             binary_test="fisher-tarone",
@@ -80,6 +80,14 @@ class TestRateAndArgs(unittest.TestCase):
     def test_fwer_alpha_default_is_0_05(self) -> None:
         args = build_parser().parse_args([])
         self.assertEqual(args.fwer_alpha, 0.05)
+
+    def test_cafe_pvalue_option_parsed(self) -> None:
+        args = build_parser().parse_args(["--cafe-pvalue", "0.2"])
+        self.assertEqual(args.cafe_pvalue, 0.2)
+
+    def test_cafe_alpha_is_rejected(self) -> None:
+        with self.assertRaises(SystemExit):
+            build_parser().parse_args(["--cafe-alpha", "0.2"])
 
     def test_get_test_data_help_shows_default_values(self) -> None:
         help_text = build_test_data_parser().format_help()

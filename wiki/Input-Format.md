@@ -56,7 +56,7 @@ Notes:
 - remaining columns are branch keys consistent with the tree
 - values are branch-level probabilities from CAFE
 
-This table is used only when `--cafe-significant-only` is set. Branches are filtered by `--cafe-alpha`.
+This table is used only when `--cafe-significant-only` is set. Branches are filtered by `--cafe-pvalue`.
 
 ## Trait Table (`--trait-tsv`) Requirements
 

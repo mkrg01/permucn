@@ -134,10 +134,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Test only families marked significant in CAFE family results; omitted tests all families",
     )
     parser.add_argument(
-        "--cafe-alpha",
+        "--cafe-pvalue",
         type=float,
         default=0.05,
-        help="Significance alpha for --cafe-significant-only filtering; ignored unless that flag is set",
+        help="Significance p-value threshold for --cafe-significant-only filtering; ignored unless that flag is set",
     )
 
     parser.add_argument(
@@ -279,8 +279,8 @@ def _validate_args(args: argparse.Namespace) -> None:
     if args.refine_p_threshold <= 0 or args.refine_p_threshold >= 1:
         raise ValueError("--refine-p-threshold must be in (0, 1)")
 
-    if args.cafe_alpha <= 0 or args.cafe_alpha >= 1:
-        raise ValueError("--cafe-alpha must be in (0, 1)")
+    if args.cafe_pvalue <= 0 or args.cafe_pvalue >= 1:
+        raise ValueError("--cafe-pvalue must be in (0, 1)")
 
     qvalue_threshold = getattr(args, "qvalue_threshold", 0.05)
     pvalue_top_n = getattr(args, "pvalue_top_n", 100)
@@ -778,7 +778,9 @@ def run(args: argparse.Namespace) -> int:
                 "--cafe-significant-only requires Gamma_branch_probabilities.tab, "
                 f"but file is missing: {paths['prob']}"
             )
-        _log_progress(f"[4/8] Loading branch probabilities for significance masking (alpha={args.cafe_alpha})")
+        _log_progress(
+            f"[4/8] Loading branch probabilities for significance masking (pvalue={args.cafe_pvalue})"
+        )
         prob_map = load_probability_map(
             path=paths["prob"],
             branch_to_index=tree.branch_index_by_key,
@@ -810,7 +812,9 @@ def run(args: argparse.Namespace) -> int:
             row["status"] = "no_valid_foreground"
     else:
         if args.cafe_significant_only:
-            cafe_sig_masks = [build_significance_mask(prob_map.get(fam_id), args.cafe_alpha) for fam_id in change.family_ids]
+            cafe_sig_masks = [
+                build_significance_mask(prob_map.get(fam_id), args.cafe_pvalue) for fam_id in change.family_ids
+            ]
 
         if fisher_tarone_mode:
             _log_progress(f"[5/8] Running Fisher exact tests for {len(rows)} families")
@@ -986,7 +990,7 @@ def run(args: argparse.Namespace) -> int:
             "asr_posterior_hi": args.asr_posterior_hi,
             "asr_posterior_lo": args.asr_posterior_lo,
             "cafe_significant_only": args.cafe_significant_only,
-            "cafe_alpha": args.cafe_alpha,
+            "cafe_pvalue": args.cafe_pvalue,
             "fwer_alpha": args.fwer_alpha,
             "n_perm_initial": args.n_perm_initial,
             "n_perm_refine": args.n_perm_refine,

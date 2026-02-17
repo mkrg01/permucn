@@ -42,7 +42,7 @@ permucn get-test-data [OPTIONS]
 | `--asr-posterior-hi` | `0.6` | Posterior threshold for hard state `1`. |
 | `--asr-posterior-lo` | `0.4` | Posterior threshold for hard state `0`. |
 | `--cafe-significant-only` | `False` | Binary mode only. Restrict event counting to branches significant in CAFE probabilities. |
-| `--cafe-alpha` | `0.05` | Significance threshold used with `--cafe-significant-only`. |
+| `--cafe-pvalue` | `0.05` | Significance threshold used with `--cafe-significant-only`. |
 
 ## Permutation and Compute
 
@@ -73,7 +73,7 @@ Note: when `--binary-test fisher-tarone` is selected, permutation generation/ref
 - `--n-perm-initial > 0`
 - `--n-perm-refine > 0`
 - `0 < --refine-p-threshold < 1`
-- `0 < --cafe-alpha < 1`
+- `0 < --cafe-pvalue < 1`
 - `0 <= --qvalue-threshold <= 1`
 - `--pvalue-top-n >= 0`
 - `--hist-bins > 0`
