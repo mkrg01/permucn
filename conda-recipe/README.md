@@ -17,6 +17,15 @@ conda install -c conda-forge -c bioconda permucn
    - publishes to PyPI
    - opens a PR in this repository to update `conda-recipe/meta.yaml` (`version` + `sha256`)
 4. Merge the generated recipe PR in this repository.
+5. `.github/workflows/bioconda-pr.yml` automatically opens/updates a PR to `bioconda/bioconda-recipes`.
+
+## One-time setup for Bioconda PR automation
+
+1. Create (or reuse) a fork of `bioconda/bioconda-recipes`.
+2. Add repository secret `BIOCONDA_BOT_TOKEN` in this repository.
+   - Token needs permission to push to your fork and create/edit PRs against `bioconda/bioconda-recipes`.
+3. Optionally set repository variable `BIOCONDA_FORK_OWNER`.
+   - If omitted, workflow uses this repository owner (`mkrg01`) as fork owner.
 
 ## Local recipe check
 
@@ -34,7 +43,7 @@ If you need to update the recipe outside the release workflow:
 python scripts/update_conda_recipe.py --version <VERSION>
 ```
 
-## Submit to Bioconda
+## Manual fallback: submit to Bioconda
 
 1. Fork `bioconda/bioconda-recipes`.
 2. Copy this repository's latest `conda-recipe/meta.yaml` to `recipes/permucn/meta.yaml` in that fork.
