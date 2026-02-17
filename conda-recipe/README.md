@@ -8,24 +8,21 @@ This directory contains the recipe template for `permucn`.
 conda install -c conda-forge -c bioconda permucn
 ```
 
-## Release flow (automated)
+## Release flow (automated after initial registration)
 
 1. Merge releasable commits into `main` (for `release-please`, use commit types like `feat:` / `fix:`).
 2. `.github/workflows/release.yml` runs and opens/updates a release PR.
 3. Merge the release PR. This automatically:
    - creates a Git tag and GitHub Release
    - publishes to PyPI
-   - opens a PR in this repository to update `conda-recipe/meta.yaml` (`version` + `sha256`)
-4. Merge the generated recipe PR in this repository.
-5. `.github/workflows/bioconda-pr.yml` automatically opens/updates a PR to `bioconda/bioconda-recipes`.
+4. Bioconda autobump detects the new upstream release and opens/updates a PR in `bioconda/bioconda-recipes`.
+5. Review and merge the Bioconda PR.
 
-## One-time setup for Bioconda PR automation
+## One-time setup (manual)
 
-1. Create (or reuse) a fork of `bioconda/bioconda-recipes`.
-2. Add repository secret `BIOCONDA_BOT_TOKEN` in this repository.
-   - Token needs permission to push to your fork and create/edit PRs against `bioconda/bioconda-recipes`.
-3. Optionally set repository variable `BIOCONDA_FORK_OWNER`.
-   - If omitted, workflow uses this repository owner (`mkrg01`) as fork owner.
+1. Open the first PR to `bioconda/bioconda-recipes` with `recipes/permucn/meta.yaml`.
+2. Merge that PR so `permucn` is registered in Bioconda recipes.
+3. After that, regular version bumps are expected to be handled by Bioconda autobump.
 
 ## Local recipe check
 
@@ -35,7 +32,7 @@ Run a local recipe build check:
 conda build conda-recipe
 ```
 
-## Manual fallback (recipe update only)
+## Manual fallback (update recipe file)
 
 If you need to update the recipe outside the release workflow:
 
