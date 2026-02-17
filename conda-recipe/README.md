@@ -10,6 +10,11 @@ conda install -c conda-forge -c bioconda permucn
 
 ## Release flow (automated after initial registration)
 
+Prerequisite (GitHub repository settings):
+- `Settings -> Actions -> General -> Workflow permissions`: set to **Read and write permissions**
+- enable **Allow GitHub Actions to create and approve pull requests**
+- optional fallback: add a `RELEASE_PLEASE_TOKEN` secret (fine-grained PAT with `contents` and `pull requests` write access)
+
 1. Merge releasable commits into `main` (for `release-please`, use commit types like `feat:` / `fix:`).
 2. `.github/workflows/release.yml` runs and opens/updates a release PR.
 3. Merge the release PR. This automatically:
