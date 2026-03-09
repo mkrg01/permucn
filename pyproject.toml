@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "permucn"
-version = "0.1.0"
+version = "0.1.1"
 description = "Permutation-based test for copy-number and binary trait association"
 readme = "README.md"
 requires-python = ">=3.12"
