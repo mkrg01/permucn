@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/mkrg01/permucn/compare/v0.1.1...v0.1.2) (2026-03-10)
+
+
+### Documentation
+
+* **readme:** point Conda badge to Bioconda package page ([7667487](https://github.com/mkrg01/permucn/commit/76674873c961cbfbfbd00ded6faf187211494a81))
+
 ## [0.1.1](https://github.com/mkrg01/permucn/compare/v0.1.0...v0.1.1) (2026-03-09)
 
 
